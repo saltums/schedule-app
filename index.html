@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>日程調整</title>
   <script>
     const _t = localStorage.getItem('theme_pref');
@@ -12,6 +14,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Outfit:wght@600;700&display=swap">
   <style>
+    /* ── TOKENS ── */
     :root {
       --bg: #F2F0EC;
       --surface: #FFFFFF;
@@ -21,161 +24,242 @@
       --text: #1A1815;
       --text-muted: #88837A;
       --accent: #0D7356;
-      --accent-hover: #0A5C44;
+      --accent-h: #0A5C44;
       --accent-fg: #FFFFFF;
-      --accent-light: #E3F4EE;
-      --s0-icon: #C2BDB6;
-      --s1-bg: #E6F4ED; --s1-icon: #16A05E; --s1-hover: #D0EBE0;
-      --s2-bg: #FFF4DC; --s2-icon: #B87000; --s2-hover: #FAEDC8;
-      --s3-bg: #FDECEA; --s3-icon: #CC3B3B; --s3-hover: #F9D9D7;
-      --sticky-shadow: 4px 0 10px -2px rgba(0,0,0,0.08);
-      --r: 8px;
+      --accent-lt: #E3F4EE;
+      --s0: #C2BDB6;
+      --s1-bg: #E6F4ED; --s1: #16A05E; --s1-h: #D0EBE0;
+      --s2-bg: #FFF4DC; --s2: #B87000; --s2-h: #FAEDC8;
+      --s3-bg: #FDECEA; --s3: #CC3B3B; --s3-h: #F9D9D7;
+      --sticky-sh: 4px 0 10px -2px rgba(0,0,0,0.08);
+      --card-sh: 0 2px 8px rgba(0,0,0,0.06);
+      --sheet-sh: 0 -4px 32px rgba(0,0,0,0.14);
+      --r: 12px; --r-sm: 8px;
+      --hh: 52px;
     }
     @media (prefers-color-scheme: dark) {
       :root:not([data-theme="light"]) {
         --bg: #111310; --surface: #1B1D1A; --surface-2: #151714;
         --border: #2A2D28; --border-strong: #3A3D38;
         --text: #EAE7E1; --text-muted: #7A7870;
-        --accent: #28A67A; --accent-hover: #33BF8D; --accent-fg: #071A12; --accent-light: #0C2218;
-        --s0-icon: #4A4740;
-        --s1-bg: #0C2118; --s1-icon: #3AB872; --s1-hover: #112A1E;
-        --s2-bg: #211808; --s2-icon: #D09020; --s2-hover: #2C2010;
-        --s3-bg: #201010; --s3-icon: #E05858; --s3-hover: #2C1414;
-        --sticky-shadow: 4px 0 14px rgba(0,0,0,0.45);
+        --accent: #28A67A; --accent-h: #33BF8D; --accent-fg: #071A12; --accent-lt: #0C2218;
+        --s0: #4A4740;
+        --s1-bg: #0C2118; --s1: #3AB872; --s1-h: #112A1E;
+        --s2-bg: #211808; --s2: #D09020; --s2-h: #2C2010;
+        --s3-bg: #201010; --s3: #E05858; --s3-h: #2C1414;
+        --sticky-sh: 4px 0 14px rgba(0,0,0,0.45);
+        --card-sh: 0 2px 8px rgba(0,0,0,0.25);
+        --sheet-sh: 0 -4px 32px rgba(0,0,0,0.5);
       }
     }
     :root[data-theme="dark"] {
       --bg: #111310; --surface: #1B1D1A; --surface-2: #151714;
       --border: #2A2D28; --border-strong: #3A3D38;
       --text: #EAE7E1; --text-muted: #7A7870;
-      --accent: #28A67A; --accent-hover: #33BF8D; --accent-fg: #071A12; --accent-light: #0C2218;
-      --s0-icon: #4A4740;
-      --s1-bg: #0C2118; --s1-icon: #3AB872; --s1-hover: #112A1E;
-      --s2-bg: #211808; --s2-icon: #D09020; --s2-hover: #2C2010;
-      --s3-bg: #201010; --s3-icon: #E05858; --s3-hover: #2C1414;
-      --sticky-shadow: 4px 0 14px rgba(0,0,0,0.45);
+      --accent: #28A67A; --accent-h: #33BF8D; --accent-fg: #071A12; --accent-lt: #0C2218;
+      --s0: #4A4740;
+      --s1-bg: #0C2118; --s1: #3AB872; --s1-h: #112A1E;
+      --s2-bg: #211808; --s2: #D09020; --s2-h: #2C2010;
+      --s3-bg: #201010; --s3: #E05858; --s3-h: #2C1414;
+      --sticky-sh: 4px 0 14px rgba(0,0,0,0.45);
+      --card-sh: 0 2px 8px rgba(0,0,0,0.25);
+      --sheet-sh: 0 -4px 32px rgba(0,0,0,0.5);
     }
 
+    /* ── RESET ── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { height: 100%; }
     body {
       font-family: 'Noto Sans JP', 'Hiragino Sans', sans-serif;
       font-size: 14px; line-height: 1.6;
-      background: var(--bg); color: var(--text); min-height: 100vh;
+      background: var(--bg); color: var(--text);
+      min-height: 100%; min-height: 100dvh;
+      -webkit-tap-highlight-color: transparent;
     }
-    button { font-family: inherit; cursor: pointer; }
+    button { font-family: inherit; cursor: pointer; background: none; border: none; color: inherit; }
     input { font-family: inherit; }
+    a { text-decoration: none; }
 
-    /* ── HEADER ── */
+    /* ── VIEW SYSTEM ── */
+    .view { display: none; }
+    .view.active { display: block; }
+
+    /* ── HEADER (shared) ── */
     .header {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 0 24px; height: 54px;
+      display: flex; align-items: center; gap: 8px;
+      padding: 0 14px; height: var(--hh);
       background: var(--surface); border-bottom: 1px solid var(--border);
-      position: sticky; top: 0; z-index: 20;
+      position: sticky; top: 0; z-index: 30;
     }
     .wordmark {
-      font-family: 'Outfit', sans-serif; font-size: 17px; font-weight: 700;
+      font-family: 'Outfit', sans-serif; font-size: 16px; font-weight: 700;
       color: var(--accent); letter-spacing: -0.02em;
+      display: flex; align-items: center; gap: 7px; flex-shrink: 0;
+    }
+    .wdot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+    .hbtn {
+      padding: 7px 10px; border-radius: var(--r-sm); font-size: 13px; font-weight: 500;
+      color: var(--text-muted); border: 1px solid var(--border);
+      transition: background .15s, color .15s;
+    }
+    .hbtn:hover { background: var(--surface-2); color: var(--text); }
+    .hbtn.accent { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+    .hbtn.accent:hover { background: var(--accent-h); }
+    .hbtn-icon { padding: 7px 9px; font-size: 16px; }
+    .spacer { flex: 1; }
+
+    /* ── HOME VIEW ── */
+    .home-main {
+      max-width: 640px; margin: 0 auto;
+      padding: 24px 16px 120px;
+    }
+    .home-section-title {
+      font-size: 11px; font-weight: 700; letter-spacing: .07em;
+      text-transform: uppercase; color: var(--text-muted); margin-bottom: 12px;
+    }
+    .schedule-list { display: flex; flex-direction: column; gap: 10px; }
+
+    .sched-card {
+      display: flex; align-items: center; gap: 12px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 14px 14px 14px 16px;
+      cursor: pointer; transition: border-color .15s, box-shadow .15s;
+    }
+    .sched-card:hover { border-color: var(--accent); box-shadow: var(--card-sh); }
+    .sched-card:active { opacity: .85; }
+    .scard-body { flex: 1; min-width: 0; }
+    .scard-title {
+      font-size: 15px; font-weight: 700; color: var(--text);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .scard-meta { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+    .scard-arrow { color: var(--text-muted); font-size: 18px; flex-shrink: 0; }
+    .scard-del {
+      padding: 8px; border-radius: var(--r-sm); color: var(--text-muted);
+      transition: background .15s, color .15s; flex-shrink: 0; font-size: 14px;
+    }
+    .scard-del:hover { background: var(--s3-bg); color: var(--s3); }
+
+    .empty-home {
+      text-align: center; padding: 64px 16px; color: var(--text-muted);
+    }
+    .empty-home-icon { font-size: 48px; margin-bottom: 16px; }
+    .empty-home strong { display: block; font-size: 16px; color: var(--text); margin-bottom: 8px; }
+    .empty-home p { font-size: 14px; }
+
+    /* FAB */
+    .fab-wrap {
+      position: fixed; bottom: max(24px, env(safe-area-inset-bottom, 24px));
+      left: 50%; transform: translateX(-50%); z-index: 20;
+    }
+    .fab {
       display: flex; align-items: center; gap: 8px;
+      background: var(--accent); color: var(--accent-fg);
+      border-radius: 100px; padding: 14px 24px;
+      font-size: 15px; font-weight: 700;
+      box-shadow: 0 4px 20px rgba(13,115,86,.38);
+      transition: background .15s, transform .12s, box-shadow .15s;
+      white-space: nowrap;
     }
-    .wordmark-dot {
-      width: 8px; height: 8px; border-radius: 50%;
-      background: var(--accent); display: inline-block;
+    .fab:hover { background: var(--accent-h); box-shadow: 0 6px 24px rgba(13,115,86,.45); }
+    .fab:active { transform: scale(.97); }
+
+    /* ── SCHEDULE VIEW ── */
+    .back-btn {
+      display: flex; align-items: center; gap: 4px;
+      font-size: 14px; font-weight: 600; color: var(--accent);
+      padding: 6px 2px; flex-shrink: 0;
     }
-    .header-actions { display: flex; gap: 6px; align-items: center; }
-
-    /* ── MAIN ── */
-    .main { max-width: 1140px; margin: 0 auto; padding: 32px 24px 64px; }
-
-    /* ── TITLE INPUT ── */
-    .title-row { margin-bottom: 24px; }
-    .schedule-title {
+    .back-btn:hover { opacity: .75; }
+    .sched-title-input {
+      flex: 1; min-width: 0;
       font-family: 'Noto Sans JP', sans-serif;
-      font-size: 22px; font-weight: 700; color: var(--text);
-      background: transparent; border: none; outline: none; width: 100%;
-      padding: 2px 0 6px; border-bottom: 2px solid transparent;
-      transition: border-color 0.2s;
+      font-size: 15px; font-weight: 700; color: var(--text);
+      background: transparent; border: none; outline: none;
+      padding: 4px 6px; border-radius: var(--r-sm);
+      transition: background .15s;
     }
-    .schedule-title:focus { border-bottom-color: var(--accent); }
-    .schedule-title::placeholder { color: var(--text-muted); font-weight: 400; font-size: 18px; }
+    .sched-title-input:focus { background: var(--surface-2); }
+    .sched-title-input::placeholder { color: var(--text-muted); font-weight: 400; }
 
-    /* ── TABLE WRAPPER ── */
+    /* Shared banner */
+    .shared-banner {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      padding: 10px 16px; background: var(--accent-lt); border-bottom: 1px solid var(--accent);
+      font-size: 13px; color: var(--accent);
+    }
+    .shared-banner.hidden { display: none; }
+    .shared-banner strong { font-weight: 600; }
+    .save-btn {
+      background: var(--accent); color: var(--accent-fg);
+      border-radius: 100px; padding: 6px 14px; font-size: 13px; font-weight: 600;
+      white-space: nowrap; flex-shrink: 0;
+    }
+
+    .schedule-main {
+      max-width: 100%; padding: 16px 14px 120px;
+    }
+
+    /* ── TABLE ── */
     .table-card {
       background: var(--surface); border: 1px solid var(--border);
       border-radius: var(--r); overflow: hidden;
     }
     .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .matrix { border-collapse: collapse; min-width: max-content; }
 
-    /* ── MATRIX TABLE ── */
-    .matrix {
-      border-collapse: collapse; width: 100%;
-      min-width: max-content; table-layout: auto;
-    }
-
-    /* Column header cells */
     .th-name {
       position: sticky; left: 0; z-index: 5;
-      background: var(--surface-2);
-      min-width: 140px; max-width: 200px;
-      padding: 10px 16px;
-      text-align: left; font-size: 10.5px; font-weight: 700;
-      letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-muted);
+      background: var(--surface-2); min-width: 120px;
+      padding: 10px 12px;
+      text-align: left; font-size: 10px; font-weight: 700;
+      letter-spacing: .07em; text-transform: uppercase; color: var(--text-muted);
       border-right: 1px solid var(--border); border-bottom: 1px solid var(--border);
-      box-shadow: var(--sticky-shadow);
+      box-shadow: var(--sticky-sh);
     }
     .th-event {
-      min-width: 130px; padding: 0;
+      min-width: 100px; padding: 0;
       border-right: 1px solid var(--border); border-bottom: 1px solid var(--border);
-      background: var(--surface); vertical-align: top;
+      background: var(--surface);
     }
-    .th-addcol {
-      width: 52px; min-width: 52px;
-      border-bottom: 1px solid var(--border); background: var(--surface);
-    }
+    .th-addcol { width: 48px; border-bottom: 1px solid var(--border); background: var(--surface); }
 
     .event-header {
-      padding: 10px 12px 8px;
+      padding: 9px 10px 7px;
       display: flex; align-items: flex-start; justify-content: space-between; gap: 4px;
-      min-height: 60px;
+      min-height: 56px;
     }
     .event-name {
-      font-size: 13px; font-weight: 600; color: var(--text);
-      line-height: 1.35; word-break: break-word; flex: 1;
-      cursor: default;
+      font-size: 12px; font-weight: 600; color: var(--text);
+      line-height: 1.35; word-break: break-word; flex: 1; cursor: text;
     }
-    .event-name.editable { cursor: text; }
-    .event-name.editable:hover { color: var(--accent); }
-
-    .th-del {
-      flex-shrink: 0; width: 18px; height: 18px;
-      border: none; background: none;
-      color: var(--text-muted); font-size: 11px;
-      border-radius: 4px; display: flex; align-items: center; justify-content: center;
-      opacity: 0; transition: opacity 0.15s, background 0.15s, color 0.15s;
-      padding: 0; line-height: 1;
+    .event-name:hover { color: var(--accent); }
+    .ev-del {
+      flex-shrink: 0; width: 18px; height: 18px; border-radius: 4px;
+      font-size: 11px; display: flex; align-items: center; justify-content: center;
+      opacity: 0; transition: opacity .15s, background .15s, color .15s;
+      color: var(--text-muted); padding: 0;
     }
-    .th-event:hover .th-del { opacity: 1; }
-    .th-del:hover { background: var(--s3-bg); color: var(--s3-icon); }
+    .th-event:hover .ev-del { opacity: 1; }
+    .ev-del:hover { background: var(--s3-bg); color: var(--s3); }
 
-    /* Add column button */
     .btn-addcol {
-      width: 100%; height: 100%; min-height: 60px;
-      background: none; border: none;
-      color: var(--text-muted); font-size: 22px; font-weight: 300;
+      width: 100%; min-height: 56px; color: var(--text-muted); font-size: 22px;
       display: flex; align-items: center; justify-content: center;
-      transition: background 0.15s, color 0.15s;
+      transition: background .15s, color .15s;
     }
-    .btn-addcol:hover { background: var(--accent-light); color: var(--accent); }
+    .btn-addcol:hover { background: var(--accent-lt); color: var(--accent); }
 
-    /* Member rows */
+    /* Member row */
     .td-name {
       position: sticky; left: 0; z-index: 3;
-      background: var(--surface); padding: 0 8px 0 14px;
+      background: var(--surface); padding: 0 6px 0 12px;
       border-right: 1px solid var(--border); border-bottom: 1px solid var(--border);
-      box-shadow: var(--sticky-shadow);
+      box-shadow: var(--sticky-sh);
     }
     .name-cell {
-      display: flex; align-items: center; justify-content: space-between;
-      gap: 4px; min-height: 52px; padding: 6px 0;
+      display: flex; align-items: center; gap: 2px;
+      min-height: 56px; padding: 6px 0;
     }
     .member-name {
       font-size: 14px; font-weight: 500; flex: 1;
@@ -183,599 +267,821 @@
       cursor: text;
     }
     .member-name:hover { color: var(--accent); }
-
-    .row-actions {
-      display: flex; gap: 1px; opacity: 0;
-      transition: opacity 0.15s; flex-shrink: 0;
+    .row-acts {
+      display: flex; gap: 1px; flex-shrink: 0;
+      opacity: 0; transition: opacity .15s;
     }
-    tr:hover .row-actions { opacity: 1; }
-
-    .icon-btn {
-      width: 22px; height: 22px; border: none; background: none;
-      color: var(--text-muted); border-radius: 4px; font-size: 11px;
+    tr:hover .row-acts { opacity: 1; }
+    /* Always show on touch devices */
+    @media (hover: none) { .row-acts { opacity: .55; } }
+    .rbtn {
+      width: 24px; height: 24px; border-radius: 5px; font-size: 11px;
       display: flex; align-items: center; justify-content: center;
-      transition: background 0.15s, color 0.15s; padding: 0; line-height: 1;
+      color: var(--text-muted); transition: background .15s, color .15s;
     }
-    .icon-btn:hover { background: var(--border); color: var(--text); }
-    .icon-btn.del:hover { background: var(--s3-bg); color: var(--s3-icon); }
+    .rbtn:hover { background: var(--border); color: var(--text); }
+    .rbtn.del:hover { background: var(--s3-bg); color: var(--s3); }
 
     /* Status cells */
     .td-cell {
       border-right: 1px solid var(--border); border-bottom: 1px solid var(--border);
-      text-align: center; cursor: pointer;
-      transition: background 0.1s;
+      text-align: center; cursor: pointer; transition: background .1s;
     }
     .td-cell:last-child { border-right: none; }
-    .cell-inner {
-      display: flex; align-items: center; justify-content: center;
-      height: 52px; width: 100%;
-    }
-    .status-icon {
-      font-size: 20px; font-weight: 700; line-height: 1;
-      font-variant-numeric: tabular-nums; user-select: none;
-    }
-
+    .ci { display: flex; align-items: center; justify-content: center; height: 56px; }
+    .si { font-size: 22px; font-weight: 700; line-height: 1; user-select: none; }
     .td-cell.s0 { background: var(--surface); }
     .td-cell.s0:hover { background: var(--surface-2); }
-    .td-cell.s0 .status-icon { color: var(--s0-icon); }
+    .td-cell.s0 .si { color: var(--s0); }
     .td-cell.s1 { background: var(--s1-bg); }
-    .td-cell.s1:hover { background: var(--s1-hover); }
-    .td-cell.s1 .status-icon { color: var(--s1-icon); }
+    .td-cell.s1:hover { background: var(--s1-h); }
+    .td-cell.s1 .si { color: var(--s1); }
     .td-cell.s2 { background: var(--s2-bg); }
-    .td-cell.s2:hover { background: var(--s2-hover); }
-    .td-cell.s2 .status-icon { color: var(--s2-icon); }
+    .td-cell.s2:hover { background: var(--s2-h); }
+    .td-cell.s2 .si { color: var(--s2); }
     .td-cell.s3 { background: var(--s3-bg); }
-    .td-cell.s3:hover { background: var(--s3-hover); }
-    .td-cell.s3 .status-icon { color: var(--s3-icon); }
-
-    .td-spacer { border-right: none; border-bottom: 1px solid var(--border); width: 52px; }
+    .td-cell.s3:hover { background: var(--s3-h); }
+    .td-cell.s3 .si { color: var(--s3); }
+    .td-spacer { border-right: none; border-bottom: 1px solid var(--border); width: 48px; }
 
     /* Summary row */
-    .summary-row td {
-      background: var(--surface-2);
-      border-top: 2px solid var(--border-strong);
-    }
-    .summary-row .td-cell { cursor: default; }
-    .summary-row .td-cell:hover { background: var(--surface-2) !important; }
-
-    .summary-label {
-      font-size: 10.5px; font-weight: 700; text-transform: uppercase;
-      letter-spacing: 0.06em; color: var(--text-muted); padding: 10px 14px;
-    }
-
-    .summary-counts {
-      display: flex; align-items: center; justify-content: center;
-      gap: 4px; flex-wrap: wrap; padding: 8px 6px;
-    }
-    .chip {
-      font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums;
-      padding: 2px 7px; border-radius: 100px;
-    }
-    .chip.c { background: var(--s1-bg); color: var(--s1-icon); }
-    .chip.t { background: var(--s2-bg); color: var(--s2-icon); }
-    .chip.x { background: var(--s3-bg); color: var(--s3-icon); }
+    .sum-row td { background: var(--surface-2); border-top: 2px solid var(--border-strong); }
+    .sum-row .td-cell { cursor: default; }
+    .sum-row .td-cell:hover { background: var(--surface-2) !important; }
+    .sum-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); padding: 0 12px; }
+    .sum-counts { display: flex; align-items: center; justify-content: center; gap: 3px; flex-wrap: wrap; padding: 8px 4px; }
+    .chip { font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 100px; }
+    .chip.c { background: var(--s1-bg); color: var(--s1); }
+    .chip.t { background: var(--s2-bg); color: var(--s2); }
+    .chip.x { background: var(--s3-bg); color: var(--s3); }
 
     /* ── ADD CONTROLS ── */
-    .add-controls {
-      display: flex; gap: 12px; margin-top: 16px; flex-wrap: wrap;
-    }
-    .add-group { display: flex; gap: 6px; align-items: center; }
+    .add-controls { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+    .add-group { display: flex; gap: 6px; }
     .add-input {
       font-size: 14px; color: var(--text); background: var(--surface);
-      border: 1px solid var(--border); border-radius: var(--r);
-      padding: 8px 12px; outline: none; width: 190px;
-      transition: border-color 0.2s, box-shadow 0.2s;
+      border: 1px solid var(--border); border-radius: var(--r-sm);
+      padding: 9px 12px; outline: none; width: 170px;
+      transition: border-color .2s, box-shadow .2s;
     }
-    .add-input:focus {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px var(--accent-light);
-    }
+    .add-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-lt); }
     .add-input::placeholder { color: var(--text-muted); }
+    .btn-add {
+      background: var(--accent); color: var(--accent-fg);
+      border-radius: var(--r-sm); padding: 9px 14px; font-size: 13px; font-weight: 600;
+      transition: background .15s; white-space: nowrap;
+    }
+    .btn-add:hover { background: var(--accent-h); }
 
     /* ── LEGEND ── */
-    .legend {
-      display: flex; gap: 16px; margin-top: 14px; flex-wrap: wrap;
-    }
-    .legend-item {
-      display: flex; align-items: center; gap: 5px;
-      font-size: 12px; color: var(--text-muted);
-    }
-    .legend-icon { font-size: 14px; font-weight: 700; }
-    .legend-icon.s0 { color: var(--s0-icon); }
-    .legend-icon.s1 { color: var(--s1-icon); }
-    .legend-icon.s2 { color: var(--s2-icon); }
-    .legend-icon.s3 { color: var(--s3-icon); }
+    .legend { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 12px; }
+    .legend-item { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text-muted); }
+    .ls { font-size: 14px; font-weight: 700; }
+    .ls.s0 { color: var(--s0); } .ls.s1 { color: var(--s1); }
+    .ls.s2 { color: var(--s2); } .ls.s3 { color: var(--s3); }
 
-    /* ── BUTTONS ── */
-    .btn {
-      font-family: 'Noto Sans JP', sans-serif;
-      font-size: 13px; font-weight: 500;
-      padding: 7px 13px; border-radius: var(--r);
-      border: 1px solid transparent; white-space: nowrap;
-      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    /* ── INLINE EDIT INPUTS ── */
+    .ied-ev {
+      font-size: 12px; font-weight: 600; width: 100%;
+      background: var(--accent-lt); border: 1.5px solid var(--accent);
+      border-radius: 5px; padding: 2px 6px; outline: none;
+      font-family: 'Noto Sans JP', sans-serif; color: var(--text);
     }
-    .btn-primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
-    .btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
-    .btn-ghost { background: none; color: var(--text-muted); border-color: var(--border); }
-    .btn-ghost:hover { background: var(--surface-2); color: var(--text); }
+    .ied-name {
+      font-size: 14px; font-weight: 500; width: 100px;
+      background: var(--accent-lt); border: 1.5px solid var(--accent);
+      border-radius: 5px; padding: 2px 6px; outline: none;
+      font-family: 'Noto Sans JP', sans-serif; color: var(--text);
+    }
 
-    /* ── INLINE EDIT ── */
-    .inline-edit {
-      font-size: 13px; font-weight: 600; color: var(--text);
-      background: var(--accent-light); border: 1.5px solid var(--accent);
-      border-radius: 5px; padding: 2px 7px; outline: none; width: 100%;
-      font-family: 'Noto Sans JP', sans-serif;
+    /* ── BOTTOM BAR ── */
+    .bottom-bar {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 25;
+      display: flex; align-items: center; justify-content: space-around;
+      background: var(--surface); border-top: 1px solid var(--border);
+      padding: 8px 12px max(12px, env(safe-area-inset-bottom, 12px));
+      gap: 6px;
     }
-    .inline-edit-name {
-      font-size: 14px; font-weight: 500; color: var(--text);
-      background: var(--accent-light); border: 1.5px solid var(--accent);
-      border-radius: 5px; padding: 2px 7px; outline: none; width: 110px;
-      font-family: 'Noto Sans JP', sans-serif;
+    .bar-btn {
+      display: flex; flex-direction: column; align-items: center; gap: 3px;
+      padding: 6px 10px; border-radius: var(--r-sm);
+      font-size: 11px; font-weight: 600; color: var(--text-muted);
+      transition: background .15s, color .15s; flex: 1;
     }
+    .bar-btn:hover { background: var(--surface-2); color: var(--text); }
+    .bar-btn:active { background: var(--border); }
+    .bar-btn svg { flex-shrink: 0; }
+    .bar-btn.share {
+      background: var(--accent); color: var(--accent-fg);
+      border-radius: var(--r); flex: 1.4; padding: 8px 12px;
+    }
+    .bar-btn.share:hover { background: var(--accent-h); }
+
+    /* ── SHARE SHEET ── */
+    .overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0);
+      z-index: 40; pointer-events: none;
+      transition: background .25s;
+    }
+    .overlay.open { background: rgba(0,0,0,.42); pointer-events: all; }
+
+    .sheet {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
+      background: var(--surface); border-radius: 20px 20px 0 0;
+      box-shadow: var(--sheet-sh);
+      transform: translateY(100%); transition: transform .3s cubic-bezier(.16,1,.3,1);
+      padding-bottom: max(20px, env(safe-area-inset-bottom, 20px));
+      max-height: 85dvh; overflow-y: auto;
+    }
+    .sheet.open { transform: translateY(0); }
+
+    .sheet-handle {
+      width: 36px; height: 4px; background: var(--border-strong);
+      border-radius: 2px; margin: 12px auto 8px;
+    }
+    .sheet-inner { padding: 4px 16px 8px; }
+    .sheet-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; }
+    .sheet-btn {
+      display: flex; align-items: center; gap: 12px;
+      width: 100%; padding: 14px 16px; border-radius: var(--r); margin-bottom: 8px;
+      font-size: 15px; font-weight: 600; text-align: left; cursor: pointer;
+      background: var(--surface-2); border: 1px solid var(--border);
+      color: var(--text); transition: background .15s, border-color .15s;
+    }
+    .sheet-btn:hover { border-color: var(--accent); background: var(--accent-lt); }
+    .sheet-btn:active { opacity: .8; }
+    .sheet-sep { height: 1px; background: var(--border); margin: 8px 0 14px; }
+    .sheet-sub { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px; }
+
+    /* LINE button */
+    .line-btn {
+      background: #00B900 !important; border-color: #00B900 !important; color: #fff !important;
+    }
+    .line-btn:hover { background: #009B00 !important; border-color: #009B00 !important; }
+
+    .sheet-close-btn {
+      width: 100%; padding: 13px; text-align: center;
+      font-size: 15px; font-weight: 600; color: var(--text-muted);
+      border-radius: var(--r); transition: background .15s;
+    }
+    .sheet-close-btn:hover { background: var(--surface-2); }
 
     /* ── TOAST ── */
     .toast {
-      position: fixed; bottom: 24px; left: 50%;
-      transform: translateX(-50%) translateY(12px);
+      position: fixed; bottom: max(90px, calc(env(safe-area-inset-bottom, 0px) + 90px));
+      left: 50%; transform: translateX(-50%) translateY(10px);
       background: var(--text); color: var(--surface);
-      font-size: 13px; font-weight: 500;
-      padding: 10px 20px; border-radius: 100px;
-      opacity: 0; transition: opacity 0.2s, transform 0.2s;
-      pointer-events: none; z-index: 9999; white-space: nowrap;
+      font-size: 13px; font-weight: 600; padding: 10px 20px;
+      border-radius: 100px; opacity: 0; pointer-events: none; z-index: 9999;
+      transition: opacity .2s, transform .2s; white-space: nowrap;
     }
     .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-    /* ── EMPTY STATE ── */
-    .empty-state {
-      padding: 56px 24px; text-align: center; color: var(--text-muted);
-    }
-    .empty-state strong { color: var(--text); font-size: 15px; display: block; margin-bottom: 6px; }
-    .empty-state p { font-size: 13px; }
+    /* ── EMPTY (matrix) ── */
+    .mx-empty { padding: 48px 24px; text-align: center; color: var(--text-muted); }
+    .mx-empty strong { display: block; color: var(--text); margin-bottom: 6px; }
 
     /* ── FOCUS ── */
     :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; } }
 
     /* ── RESPONSIVE ── */
-    @media (max-width: 640px) {
-      .main { padding: 20px 14px 48px; }
-      .header { padding: 0 14px; }
-      .add-controls { flex-direction: column; gap: 8px; }
-      .add-input { width: 150px; }
-      .btn { padding: 7px 10px; font-size: 12px; }
-      .header-actions .btn-ghost span.label { display: none; }
+    @media (max-width: 480px) {
+      .add-input { width: 140px; }
+      .th-name { min-width: 100px; }
+      .add-controls { gap: 8px; }
     }
   </style>
 </head>
 <body>
-<div class="app">
 
+<!-- ═══════════════════════════════════════════
+     HOME VIEW
+═══════════════════════════════════════════ -->
+<div id="view-home" class="view">
   <header class="header">
-    <div class="wordmark">
-      <span class="wordmark-dot"></span>
-      日程調整
-    </div>
-    <div class="header-actions">
-      <button class="btn btn-ghost" onclick="shareUrl()">
-        <span class="label">共有リンクをコピー</span>
-      </button>
-      <button class="btn btn-ghost" onclick="exportJson()">JSON出力</button>
-      <label class="btn btn-ghost" style="cursor:pointer" title="JSONファイルを読込">
-        JSON読込
-        <input type="file" id="import-file" accept=".json" hidden onchange="importJson(event)">
-      </label>
-      <button class="btn btn-ghost" id="theme-btn" onclick="toggleTheme()" title="テーマ切替" style="padding:7px 10px;font-size:16px">◐</button>
-    </div>
+    <div class="wordmark"><span class="wdot"></span>日程調整</div>
+    <span class="spacer"></span>
+    <button class="hbtn hbtn-icon" id="theme-btn-home" onclick="toggleTheme()" title="テーマ切替">◐</button>
   </header>
-
-  <main class="main">
-    <div class="title-row">
-      <input class="schedule-title" type="text" id="schedule-title"
-             placeholder="スケジュールのタイトルを入力…"
-             oninput="state.title=this.value; saveState()">
-    </div>
-
-    <div class="table-card">
-      <div class="table-scroll">
-        <div id="table-container"></div>
-      </div>
-    </div>
-
-    <div class="add-controls">
-      <div class="add-group">
-        <input class="add-input" type="text" id="add-member-input"
-               placeholder="参加者名"
-               onkeydown="if(event.key==='Enter')addMemberFromInput()">
-        <button class="btn btn-primary" onclick="addMemberFromInput()">参加者を追加</button>
-      </div>
-      <div class="add-group">
-        <input class="add-input" type="text" id="add-event-input"
-               placeholder="日程・イベント名"
-               onkeydown="if(event.key==='Enter')addEventFromInput()">
-        <button class="btn btn-primary" onclick="addEventFromInput()">日程を追加</button>
-      </div>
-    </div>
-
-    <div class="legend">
-      <div class="legend-item"><span class="legend-icon s1">○</span> 参加可</div>
-      <div class="legend-item"><span class="legend-icon s2">△</span> 未定・調整可</div>
-      <div class="legend-item"><span class="legend-icon s3">×</span> 不参加</div>
-      <div class="legend-item"><span class="legend-icon s0">—</span> 未回答</div>
-      <div class="legend-item" style="margin-left:8px;color:var(--text-muted);font-size:12px">セルをクリックして変更 · 名前をダブルクリックして編集</div>
-    </div>
+  <main class="home-main">
+    <p class="home-section-title">保存済みのスケジュール</p>
+    <div id="schedule-list"></div>
   </main>
+  <div class="fab-wrap">
+    <button class="fab" onclick="newSchedule()">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+        <line x1="9" y1="2" x2="9" y2="16" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="2" y1="9" x2="16" y2="9" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+      </svg>
+      新しいスケジュール
+    </button>
+  </div>
 </div>
 
-<div class="toast" id="toast"></div>
+<!-- ═══════════════════════════════════════════
+     SCHEDULE VIEW
+═══════════════════════════════════════════ -->
+<div id="view-schedule" class="view">
+  <header class="header">
+    <button class="back-btn" onclick="goHome()">
+      <svg width="7" height="12" viewBox="0 0 7 12" fill="none">
+        <path d="M6 1L1 6L6 11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      一覧
+    </button>
+    <input class="sched-title-input" id="sched-title"
+           placeholder="スケジュール名を入力…"
+           oninput="onTitleChange(this.value)">
+    <button class="hbtn hbtn-icon" id="theme-btn-sched" onclick="toggleTheme()" title="テーマ">◐</button>
+  </header>
+
+  <div id="shared-banner" class="shared-banner hidden">
+    <span>📤 <strong>共有リンクで開きました</strong></span>
+    <button class="save-btn" onclick="saveSharedSchedule()">このデバイスに保存</button>
+  </div>
+
+  <main class="schedule-main">
+    <div class="table-card">
+      <div class="table-scroll">
+        <div id="matrix-container"></div>
+      </div>
+    </div>
+    <div class="add-controls">
+      <div class="add-group">
+        <input class="add-input" id="add-member" placeholder="参加者名"
+               onkeydown="if(event.key==='Enter')addMemberFromInput()">
+        <button class="btn-add" onclick="addMemberFromInput()">追加</button>
+      </div>
+      <div class="add-group">
+        <input class="add-input" id="add-event" placeholder="日程・イベント名"
+               onkeydown="if(event.key==='Enter')addEventFromInput()">
+        <button class="btn-add" onclick="addEventFromInput()">追加</button>
+      </div>
+    </div>
+    <div class="legend">
+      <span class="legend-item"><span class="ls s1">○</span>参加可</span>
+      <span class="legend-item"><span class="ls s2">△</span>未定</span>
+      <span class="legend-item"><span class="ls s3">×</span>不参加</span>
+      <span class="legend-item"><span class="ls s0">—</span>未回答</span>
+      <span class="legend-item" style="color:var(--text-muted);font-size:11px">セルをタップして変更</span>
+    </div>
+  </main>
+
+  <div class="bottom-bar">
+    <button class="bar-btn" onclick="focusInput('add-member')">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+        <circle cx="7" cy="6" r="3" stroke="currentColor" stroke-width="1.8"/>
+        <path d="M1 15c0-3.314 2.686-6 6-6s6 2.686 6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        <line x1="14" y1="10" x2="14" y2="16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        <line x1="11" y1="13" x2="17" y2="13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+      参加者を追加
+    </button>
+    <button class="bar-btn share" onclick="openShareSheet()">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+        <circle cx="14" cy="3" r="2" stroke="currentColor" stroke-width="1.8"/>
+        <circle cx="14" cy="15" r="2" stroke="currentColor" stroke-width="1.8"/>
+        <circle cx="4" cy="9" r="2" stroke="currentColor" stroke-width="1.8"/>
+        <line x1="5.9" y1="8.1" x2="12.1" y2="3.9" stroke="currentColor" stroke-width="1.8"/>
+        <line x1="5.9" y1="9.9" x2="12.1" y2="14.1" stroke="currentColor" stroke-width="1.8"/>
+      </svg>
+      共有
+    </button>
+    <button class="bar-btn" onclick="focusInput('add-event')">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+        <rect x="2" y="3" width="14" height="13" rx="2" stroke="currentColor" stroke-width="1.8"/>
+        <line x1="2" y1="7" x2="16" y2="7" stroke="currentColor" stroke-width="1.8"/>
+        <line x1="6" y1="1" x2="6" y2="5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        <line x1="12" y1="1" x2="12" y2="5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        <line x1="9" y1="11" x2="9" y2="14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        <line x1="7.5" y1="12.5" x2="10.5" y2="12.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+      日程を追加
+    </button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     SHARE SHEET
+═══════════════════════════════════════════ -->
+<div id="sheet-overlay" class="overlay" onclick="closeShareSheet()"></div>
+<div id="share-sheet" class="sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-inner">
+    <p class="sheet-title">共有・エクスポート</p>
+
+    <button class="sheet-btn" onclick="copyShareUrl()">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+        <path d="M8 13L5 10a5 5 0 017.07-7.07l3 3A5 5 0 0112 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        <path d="M12 7l3 3a5 5 0 01-7.07 7.07l-3-3A5 5 0 018 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+      URLをコピー
+    </button>
+
+    <a class="sheet-btn line-btn" id="line-share-link" href="#" target="_blank" rel="noopener noreferrer">
+      <!-- LINE logo SVG -->
+      <svg width="24" height="24" viewBox="0 0 48 48" fill="none">
+        <rect width="48" height="48" rx="12" fill="#00B900"/>
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M24 8C15.16 8 8 14.28 8 22.04c0 7.08 6.28 13.02 14.72 13.92.58.12 1.36.38 1.56.88.18.44.12 1.14 0 1.58l-.26 1.56c-.08.44-.36 1.74 1.52.94 1.88-.8 10.18-5.98 13.9-10.24C41.62 28.06 42 25.14 42 22.04 42 14.28 32.84 8 24 8zm-6.84 18.44h-3.54c-.58 0-1.04-.46-1.04-1.04v-7.82c0-.58.46-1.04 1.04-1.04h.96c.58 0 1.04.46 1.04 1.04v6.78h2.58c.58 0 1.04.46 1.04 1.04v.96c0 .6-.46 1.08-1.04 1.08zm3.92-1.04c0 .58-.46 1.04-1.04 1.04h-.96c-.58 0-1.04-.46-1.04-1.04v-7.82c0-.58.46-1.04 1.04-1.04h.96c.58 0 1.04.46 1.04 1.04v7.82zm9.2 0c0 .58-.46 1.04-1.04 1.04h-.96c-.18 0-.36-.06-.5-.14l-4.04-5.46v4.56c0 .58-.46 1.04-1.04 1.04h-.96c-.58 0-1.04-.46-1.04-1.04v-7.82c0-.58.46-1.04 1.04-1.04h.96c.18 0 .36.06.5.14l4.04 5.46v-4.56c0-.58.46-1.04 1.04-1.04h.96c.58 0 1.04.46 1.04 1.04v7.82zm5.56-5.68h-2.56v1.24h2.56c.58 0 1.04.46 1.04 1.04v.96c0 .58-.46 1.04-1.04 1.04h-2.56v1.24h2.56c.58 0 1.04.46 1.04 1.04v.96c0 .58-.46 1.04-1.04 1.04h-3.56c-.58 0-1.04-.46-1.04-1.04v-7.82c0-.58.46-1.04 1.04-1.04h3.56c.58 0 1.04.46 1.04 1.04v.96c0 .58-.46 1.04-1.04 1.04z" fill="white"/>
+      </svg>
+      LINEで共有
+    </a>
+
+    <div class="sheet-sep"></div>
+    <p class="sheet-sub">データ管理</p>
+
+    <button class="sheet-btn" onclick="exportJson()">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+        <path d="M10 3v10M6 9l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M3 14v1a2 2 0 002 2h10a2 2 0 002-2v-1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+      JSONファイルを出力（バックアップ）
+    </button>
+
+    <label class="sheet-btn" style="cursor:pointer">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+        <path d="M10 13V3M6 7l4-4 4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M3 14v1a2 2 0 002 2h10a2 2 0 002-2v-1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+      JSONファイルを読込（復元）
+      <input type="file" id="import-file" accept=".json" hidden onchange="importJson(event)">
+    </label>
+
+    <button class="sheet-close-btn" onclick="closeShareSheet()">閉じる</button>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
 
 <script>
-/* ======== STATE ======== */
-const STATUS = ['—', '○', '△', '×'];
-const NEXT = [1, 2, 3, 0];
-const LS_KEY = 'schedule_app_v2';
+/* ================================================================
+   CONSTANTS & HELPERS
+================================================================ */
+const STATUS  = ['—', '○', '△', '×'];
+const STATUS_NEXT = [1, 2, 3, 0];
+const LS_KEY  = 'schedule_list_v2';
 
-let state = { title: '', events: [], members: [], cells: {} };
-
-function uid() {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function fmtDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return `${d.getMonth()+1}月${d.getDate()}日`;
 }
 
-function escHtml(s) {
-  return String(s)
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+/* ================================================================
+   STATE
+================================================================ */
+let scheduleList = [];  // [{id, title, updatedAt, events, members, cells}]
+let current     = null; // schedule being edited (object ref in list, or temp)
+let isShared    = false;
+
+function saveList() {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(scheduleList)); } catch(e) {}
 }
 
-function getStatus(mid, eid) {
-  return state.cells[mid]?.[eid] ?? 0;
+function loadList() {
+  try {
+    const s = localStorage.getItem(LS_KEY);
+    if (s) { const d = JSON.parse(s); if (Array.isArray(d)) { scheduleList = d; return; } }
+  } catch(e) {}
+  scheduleList = [];
 }
 
+function saveCurrentToList() {
+  if (!current || isShared) return;
+  current.updatedAt = new Date().toISOString();
+  const idx = scheduleList.findIndex(s => s.id === current.id);
+  if (idx >= 0) scheduleList[idx] = current;
+  else scheduleList.unshift(current);
+  saveList();
+}
+
+/* ================================================================
+   ROUTING
+================================================================ */
+function route() {
+  const hash = location.hash;
+
+  if (hash.startsWith('#data=')) {
+    try {
+      const data = JSON.parse(decodeURIComponent(atob(hash.slice(6))));
+      if (data && Array.isArray(data.members)) {
+        current  = { ...data, id: data.id || uid() };
+        if (!current.cells) current.cells = {};
+        isShared = true;
+        showView('schedule');
+        return;
+      }
+    } catch(e) {}
+  }
+
+  if (hash.startsWith('#id=')) {
+    const id = hash.slice(4);
+    const s  = scheduleList.find(s => s.id === id);
+    if (s) { current = s; isShared = false; showView('schedule'); return; }
+  }
+
+  if (hash === '#new') { createNew(); return; }
+  showView('home');
+}
+
+window.addEventListener('popstate', route);
+
+function navigate(hash) {
+  history.pushState(null, '', location.pathname + hash);
+  route();
+}
+
+/* ================================================================
+   VIEWS
+================================================================ */
+function showView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+  if (name === 'home')     renderHome();
+  if (name === 'schedule') renderSchedule();
+}
+
+/* ── HOME ── */
+function renderHome() {
+  const list = document.getElementById('schedule-list');
+  updateThemeBtns();
+
+  if (scheduleList.length === 0) {
+    list.innerHTML = `<div class="empty-home">
+      <div class="empty-home-icon">📋</div>
+      <strong>スケジュールがまだありません</strong>
+      <p>下のボタンから作成してください</p>
+    </div>`;
+    return;
+  }
+
+  list.innerHTML = scheduleList.map(s => `
+    <div class="sched-card" onclick="openSchedule('${s.id}')">
+      <div class="scard-body">
+        <div class="scard-title">${esc(s.title || '無題のスケジュール')}</div>
+        <div class="scard-meta">
+          ${s.members?.length ?? 0}名 · ${s.events?.length ?? 0}件
+          ${s.updatedAt ? ' · ' + fmtDate(s.updatedAt) + '更新' : ''}
+        </div>
+      </div>
+      <button class="scard-del" onclick="deleteSchedule(event,'${s.id}')" title="削除">✕</button>
+      <span class="scard-arrow">›</span>
+    </div>
+  `).join('');
+}
+
+function goHome() {
+  closeShareSheet();
+  navigate('#');
+}
+
+function openSchedule(id) {
+  navigate('#id=' + id);
+}
+
+function createNew() {
+  const s = {
+    id: uid(), title: '', updatedAt: new Date().toISOString(),
+    events: [], members: [], cells: {}
+  };
+  scheduleList.unshift(s);
+  saveList();
+  current  = s;
+  isShared = false;
+  history.replaceState(null, '', location.pathname + '#id=' + s.id);
+  showView('schedule');
+}
+
+function newSchedule() { navigate('#new'); }
+
+function deleteSchedule(e, id) {
+  e.stopPropagation();
+  if (!confirm('このスケジュールを削除しますか？')) return;
+  scheduleList = scheduleList.filter(s => s.id !== id);
+  saveList();
+  renderHome();
+}
+
+/* ── SCHEDULE ── */
+function renderSchedule() {
+  updateThemeBtns();
+
+  // Title
+  const titleEl = document.getElementById('sched-title');
+  if (titleEl && document.activeElement !== titleEl) titleEl.value = current.title || '';
+
+  // Shared banner
+  const banner = document.getElementById('shared-banner');
+  banner.classList.toggle('hidden', !isShared);
+
+  renderMatrix();
+}
+
+function onTitleChange(val) {
+  if (!current) return;
+  current.title = val;
+  if (!isShared) saveCurrentToList();
+}
+
+function saveSharedSchedule() {
+  if (!current) return;
+  const existing = scheduleList.find(s => s.id === current.id);
+  if (!existing) {
+    scheduleList.unshift({ ...current, updatedAt: new Date().toISOString() });
+    saveList();
+  }
+  isShared = false;
+  history.replaceState(null, '', location.pathname + '#id=' + current.id);
+  document.getElementById('shared-banner').classList.add('hidden');
+  showToast('スケジュールを保存しました');
+}
+
+/* ── MATRIX ── */
+function getStatus(mid, eid) { return current.cells?.[mid]?.[eid] ?? 0; }
 function setStatus(mid, eid, s) {
-  if (!state.cells[mid]) state.cells[mid] = {};
-  state.cells[mid][eid] = s;
+  if (!current.cells) current.cells = {};
+  if (!current.cells[mid]) current.cells[mid] = {};
+  current.cells[mid][eid] = s;
 }
 
-/* ======== MUTATIONS ======== */
 function toggleStatus(mid, eid) {
-  setStatus(mid, eid, NEXT[getStatus(mid, eid)]);
-  saveState(); render();
+  setStatus(mid, eid, STATUS_NEXT[getStatus(mid, eid)]);
+  if (!isShared) saveCurrentToList(); else renderMatrix();
+  renderMatrix();
 }
 
-function addMember(name) {
-  state.members.push({ id: uid(), name });
-  saveState(); render();
+function renderMatrix() {
+  const cont = document.getElementById('matrix-container');
+  const { events, members } = current;
+
+  if (!members.length && !events.length) {
+    cont.innerHTML = `<div class="mx-empty"><strong>データがまだありません</strong><p>下のフォームから参加者と日程を追加してください</p></div>`;
+    return;
+  }
+
+  let h = '<table class="matrix"><thead><tr>';
+  h += `<th class="th-name">参加者</th>`;
+  events.forEach(ev => {
+    h += `<th class="th-event">
+      <div class="event-header">
+        <span class="event-name" ondblclick="editEventName('${ev.id}',this)" title="ダブルタップで編集">${esc(ev.title)}</span>
+        <button class="ev-del" onclick="deleteEvent('${ev.id}')" title="削除">✕</button>
+      </div></th>`;
+  });
+  h += `<th class="th-addcol"><button class="btn-addcol" onclick="focusInput('add-event')" title="日程を追加">＋</button></th>`;
+  h += '</tr></thead><tbody>';
+
+  members.forEach((m, i) => {
+    h += `<tr><td class="td-name"><div class="name-cell">
+      <span class="member-name" ondblclick="editMemberName('${m.id}',this)" title="ダブルタップで編集">${esc(m.name)}</span>
+      <div class="row-acts">
+        <button class="rbtn" onclick="moveMember('${m.id}',-1)" title="上へ"
+          ${i===0?'style="visibility:hidden"':''}>↑</button>
+        <button class="rbtn" onclick="moveMember('${m.id}',1)" title="下へ"
+          ${i===members.length-1?'style="visibility:hidden"':''}>↓</button>
+        <button class="rbtn del" onclick="deleteMember('${m.id}')" title="削除">✕</button>
+      </div>
+    </div></td>`;
+    events.forEach(ev => {
+      const s = getStatus(m.id, ev.id);
+      h += `<td class="td-cell s${s}" onclick="toggleStatus('${m.id}','${ev.id}')">
+        <div class="ci"><span class="si">${STATUS[s]}</span></div></td>`;
+    });
+    h += '<td class="td-spacer"></td></tr>';
+  });
+
+  if (members.length > 0 && events.length > 0) {
+    h += `<tr class="sum-row"><td class="td-name sum-label">集計</td>`;
+    events.forEach(ev => {
+      const c = [0,0,0,0];
+      members.forEach(m => c[getStatus(m.id,ev.id)]++);
+      h += `<td class="td-cell s0"><div class="sum-counts">
+        <span class="chip c">○ ${c[1]}</span>
+        <span class="chip t">△ ${c[2]}</span>
+        <span class="chip x">× ${c[3]}</span>
+      </div></td>`;
+    });
+    h += '<td class="td-spacer"></td></tr>';
+  }
+
+  h += '</tbody></table>';
+  cont.innerHTML = h;
 }
 
-function deleteMember(id) {
-  state.members = state.members.filter(m => m.id !== id);
-  delete state.cells[id];
-  saveState(); render();
+/* ── MUTATIONS ── */
+function addMemberFromInput() {
+  const el = document.getElementById('add-member');
+  const name = el.value.trim();
+  if (!name) { el.focus(); return; }
+  current.members.push({ id: uid(), name });
+  if (!isShared) saveCurrentToList();
+  renderMatrix();
+  el.value = ''; el.focus();
 }
 
-function moveMember(id, dir) {
-  const i = state.members.findIndex(m => m.id === id);
-  const j = i + dir;
-  if (j < 0 || j >= state.members.length) return;
-  [state.members[i], state.members[j]] = [state.members[j], state.members[i]];
-  saveState(); render();
-}
-
-function addEvent(title) {
-  state.events.push({ id: uid(), title });
-  saveState(); render();
+function addEventFromInput() {
+  const el = document.getElementById('add-event');
+  const title = el.value.trim();
+  if (!title) { el.focus(); return; }
+  current.events.push({ id: uid(), title });
+  if (!isShared) saveCurrentToList();
+  renderMatrix();
+  el.value = ''; el.focus();
   setTimeout(() => {
     const w = document.querySelector('.table-scroll');
     if (w) w.scrollLeft = w.scrollWidth;
   }, 0);
 }
 
+function deleteMember(id) {
+  current.members = current.members.filter(m => m.id !== id);
+  if (current.cells) delete current.cells[id];
+  if (!isShared) saveCurrentToList();
+  renderMatrix();
+}
+
 function deleteEvent(id) {
-  state.events = state.events.filter(e => e.id !== id);
-  Object.values(state.cells).forEach(c => delete c[id]);
-  saveState(); render();
+  current.events = current.events.filter(e => e.id !== id);
+  if (current.cells) Object.values(current.cells).forEach(c => delete c[id]);
+  if (!isShared) saveCurrentToList();
+  renderMatrix();
 }
 
-/* ======== INPUT HANDLERS ======== */
-function addMemberFromInput() {
-  const el = document.getElementById('add-member-input');
-  const name = el.value.trim();
-  if (!name) { el.focus(); return; }
-  addMember(name);
-  el.value = ''; el.focus();
+function moveMember(id, dir) {
+  const i = current.members.findIndex(m => m.id === id);
+  const j = i + dir;
+  if (j < 0 || j >= current.members.length) return;
+  [current.members[i], current.members[j]] = [current.members[j], current.members[i]];
+  if (!isShared) saveCurrentToList();
+  renderMatrix();
 }
 
-function addEventFromInput() {
-  const el = document.getElementById('add-event-input');
-  const title = el.value.trim();
-  if (!title) { el.focus(); return; }
-  addEvent(title);
-  el.value = ''; el.focus();
-}
-
-function focusAddEvent() {
-  document.getElementById('add-event-input').focus();
-}
-
-/* ======== INLINE EDIT ======== */
-function editEventTitle(eventId, spanEl) {
-  const ev = state.events.find(e => e.id === eventId);
+/* ── INLINE EDIT ── */
+function editEventName(id, el) {
+  const ev = current.events.find(e => e.id === id);
   if (!ev) return;
-  const input = document.createElement('input');
-  input.className = 'inline-edit';
-  input.value = ev.title;
-  spanEl.replaceWith(input);
-  input.focus(); input.select();
+  const inp = document.createElement('input');
+  inp.className = 'ied-ev'; inp.value = ev.title;
+  el.replaceWith(inp); inp.focus(); inp.select();
   let done = false;
   const save = () => {
     if (done) return; done = true;
-    const v = input.value.trim();
-    if (v) ev.title = v;
-    saveState(); render();
+    const v = inp.value.trim(); if (v) ev.title = v;
+    if (!isShared) saveCurrentToList();
+    renderMatrix();
   };
-  input.addEventListener('blur', save);
-  input.addEventListener('keydown', e => {
+  inp.addEventListener('blur', save);
+  inp.addEventListener('keydown', e => {
     if (e.key === 'Enter') { e.preventDefault(); save(); }
-    if (e.key === 'Escape') { done = true; render(); }
+    if (e.key === 'Escape') { done = true; renderMatrix(); }
   });
 }
 
-function editMemberName(memberId, spanEl) {
-  const m = state.members.find(m => m.id === memberId);
+function editMemberName(id, el) {
+  const m = current.members.find(m => m.id === id);
   if (!m) return;
-  const input = document.createElement('input');
-  input.className = 'inline-edit-name';
-  input.value = m.name;
-  spanEl.replaceWith(input);
-  input.focus(); input.select();
+  const inp = document.createElement('input');
+  inp.className = 'ied-name'; inp.value = m.name;
+  el.replaceWith(inp); inp.focus(); inp.select();
   let done = false;
   const save = () => {
     if (done) return; done = true;
-    const v = input.value.trim();
-    if (v) m.name = v;
-    saveState(); render();
+    const v = inp.value.trim(); if (v) m.name = v;
+    if (!isShared) saveCurrentToList();
+    renderMatrix();
   };
-  input.addEventListener('blur', save);
-  input.addEventListener('keydown', e => {
+  inp.addEventListener('blur', save);
+  inp.addEventListener('keydown', e => {
     if (e.key === 'Enter') { e.preventDefault(); save(); }
-    if (e.key === 'Escape') { done = true; render(); }
+    if (e.key === 'Escape') { done = true; renderMatrix(); }
   });
 }
 
-/* ======== RENDER ======== */
-function render() {
-  const titleEl = document.getElementById('schedule-title');
-  if (titleEl && document.activeElement !== titleEl) titleEl.value = state.title;
-
-  const container = document.getElementById('table-container');
-  const hasData = state.members.length > 0 || state.events.length > 0;
-
-  if (!hasData) {
-    container.innerHTML = `<div class="empty-state">
-      <strong>データがまだありません</strong>
-      <p>下のフォームから参加者と日程を追加してください。</p>
-    </div>`;
-    return;
-  }
-
-  let h = '<table class="matrix"><thead><tr>';
-
-  // Corner cell
-  h += `<th class="th-name">参加者</th>`;
-
-  // Event columns
-  state.events.forEach(ev => {
-    h += `<th class="th-event">
-      <div class="event-header">
-        <span class="event-name editable"
-              ondblclick="editEventTitle('${ev.id}',this)"
-              title="ダブルクリックで編集">${escHtml(ev.title)}</span>
-        <button class="th-del" onclick="deleteEvent('${ev.id}')" title="削除">✕</button>
-      </div>
-    </th>`;
-  });
-
-  // Add-column button
-  h += `<th class="th-addcol"><button class="btn-addcol" onclick="focusAddEvent()" title="日程を追加">＋</button></th>`;
-  h += '</tr></thead><tbody>';
-
-  // Member rows
-  state.members.forEach((m, i) => {
-    h += `<tr>
-      <td class="td-name">
-        <div class="name-cell">
-          <span class="member-name"
-                ondblclick="editMemberName('${m.id}',this)"
-                title="ダブルクリックで編集">${escHtml(m.name)}</span>
-          <div class="row-actions">
-            <button class="icon-btn" onclick="moveMember('${m.id}',-1)"
-                    title="上へ" ${i===0?'style="visibility:hidden"':''}>↑</button>
-            <button class="icon-btn" onclick="moveMember('${m.id}',1)"
-                    title="下へ" ${i===state.members.length-1?'style="visibility:hidden"':''}>↓</button>
-            <button class="icon-btn del" onclick="deleteMember('${m.id}')" title="削除">✕</button>
-          </div>
-        </div>
-      </td>`;
-
-    state.events.forEach(ev => {
-      const s = getStatus(m.id, ev.id);
-      h += `<td class="td-cell s${s}" onclick="toggleStatus('${m.id}','${ev.id}')">
-        <div class="cell-inner"><span class="status-icon">${STATUS[s]}</span></div>
-      </td>`;
-    });
-
-    h += '<td class="td-spacer"></td></tr>';
-  });
-
-  // Summary row
-  if (state.members.length > 0 && state.events.length > 0) {
-    h += `<tr class="summary-row">
-      <td class="td-name summary-label">集計</td>`;
-    state.events.forEach(ev => {
-      const c = [0,0,0,0];
-      state.members.forEach(m => c[getStatus(m.id,ev.id)]++);
-      h += `<td class="td-cell s0 td-summary">
-        <div class="summary-counts">
-          <span class="chip c">○ ${c[1]}</span>
-          <span class="chip t">△ ${c[2]}</span>
-          <span class="chip x">× ${c[3]}</span>
-        </div>
-      </td>`;
-    });
-    h += '<td class="td-spacer"></td></tr>';
-  }
-
-  h += '</tbody></table>';
-  container.innerHTML = h;
+function focusInput(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  setTimeout(() => el.focus(), 200);
 }
 
-/* ======== PERSISTENCE ======== */
-function saveState() {
-  try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch(e) {}
+/* ================================================================
+   SHARE SHEET
+================================================================ */
+function generateShareUrl() {
+  const encoded = btoa(encodeURIComponent(JSON.stringify(current)));
+  return location.origin + location.pathname + '#data=' + encoded;
 }
 
-function loadFromStorage() {
-  try {
-    const s = localStorage.getItem(LS_KEY);
-    if (s) {
-      const d = JSON.parse(s);
-      if (d && Array.isArray(d.members)) {
-        state = d;
-        if (!state.cells) state.cells = {};
-        return true;
-      }
-    }
-  } catch(e) {}
-  return false;
+function openShareSheet() {
+  const url = generateShareUrl();
+  document.getElementById('line-share-link').href =
+    'https://social-plugins.line.me/lineit/share?url=' + encodeURIComponent(url);
+  document.getElementById('sheet-overlay').classList.add('open');
+  document.getElementById('share-sheet').classList.add('open');
+  document.body.style.overflow = 'hidden';
 }
 
-function loadFromHash() {
-  try {
-    const h = location.hash;
-    if (!h.startsWith('#data=')) return false;
-    const d = JSON.parse(decodeURIComponent(atob(h.slice(6))));
-    if (d && Array.isArray(d.members)) {
-      state = d;
-      if (!state.cells) state.cells = {};
-      return true;
-    }
-  } catch(e) {}
-  return false;
+function closeShareSheet() {
+  document.getElementById('sheet-overlay').classList.remove('open');
+  document.getElementById('share-sheet').classList.remove('open');
+  document.body.style.overflow = '';
 }
 
-/* ======== SHARING ======== */
-function shareUrl() {
-  try {
-    const encoded = btoa(encodeURIComponent(JSON.stringify(state)));
-    const url = location.origin + location.pathname + '#data=' + encoded;
-    if (navigator.clipboard?.writeText) {
-      navigator.clipboard.writeText(url).then(() => showToast('共有リンクをコピーしました！')).catch(() => fallbackCopy(url));
-    } else { fallbackCopy(url); }
-  } catch(e) { showToast('コピーに失敗しました'); }
+function copyShareUrl() {
+  const url = generateShareUrl();
+  const copy = () => {
+    const ta = document.createElement('textarea');
+    ta.value = url; ta.style.cssText = 'position:fixed;opacity:0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); showToast('共有リンクをコピーしました！'); }
+    catch { prompt('URLをコピーしてください:', url); }
+    document.body.removeChild(ta);
+  };
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(url).then(() => showToast('共有リンクをコピーしました！')).catch(copy);
+  } else { copy(); }
 }
 
-function fallbackCopy(text) {
-  const ta = document.createElement('textarea');
-  ta.value = text;
-  ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0';
-  document.body.appendChild(ta);
-  ta.select();
-  try { document.execCommand('copy'); showToast('共有リンクをコピーしました！'); }
-  catch(e) { prompt('URLをコピーしてください:', text); }
-  document.body.removeChild(ta);
-}
-
-/* ======== JSON I/O ======== */
+/* ================================================================
+   JSON I/O
+================================================================ */
 function exportJson() {
-  const json = JSON.stringify(state, null, 2);
+  const json = JSON.stringify(current, null, 2);
   const blob = new Blob([json], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
   a.href = url;
-  a.download = (state.title || 'schedule') + '_' + new Date().toISOString().slice(0,10) + '.json';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  a.download = (current.title || 'schedule') + '_' + new Date().toISOString().slice(0,10) + '.json';
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
   showToast('JSONファイルを出力しました');
 }
 
 function importJson(e) {
-  const file = e.target.files[0];
-  if (!file) return;
+  const file = e.target.files[0]; if (!file) return;
   const reader = new FileReader();
   reader.onload = evt => {
     try {
       const d = JSON.parse(evt.target.result);
       if (!Array.isArray(d.members) || !Array.isArray(d.events)) throw new Error();
-      state = d;
-      if (!state.cells) state.cells = {};
-      saveState(); render();
+      current = { ...d, id: current?.id || uid() };
+      if (!current.cells) current.cells = {};
+      if (!isShared) saveCurrentToList();
+      renderSchedule();
       showToast('データを読み込みました');
     } catch { showToast('ファイルの形式が正しくありません'); }
     e.target.value = '';
   };
   reader.readAsText(file);
+  closeShareSheet();
 }
 
-/* ======== THEME ======== */
+/* ================================================================
+   THEME
+================================================================ */
 function toggleTheme() {
-  const cur = document.documentElement.getAttribute('data-theme') || 'system';
+  const cur  = document.documentElement.getAttribute('data-theme') || 'system';
   const next = cur === 'system' ? 'dark' : cur === 'dark' ? 'light' : 'system';
   if (next === 'system') document.documentElement.removeAttribute('data-theme');
   else document.documentElement.setAttribute('data-theme', next);
   try { localStorage.setItem('theme_pref', next); } catch(e) {}
-  updateThemeBtn();
+  updateThemeBtns();
 }
 
-function updateThemeBtn() {
-  const btn = document.getElementById('theme-btn');
-  if (!btn) return;
+function updateThemeBtns() {
   const t = document.documentElement.getAttribute('data-theme') || 'system';
-  btn.textContent = t === 'dark' ? '☀' : t === 'light' ? '◑' : '◐';
-  btn.title = t === 'dark' ? 'ライトモードへ' : t === 'light' ? 'システム設定へ' : 'ダークモードへ';
+  const icon  = t === 'dark' ? '☀' : t === 'light' ? '◑' : '◐';
+  const title = t === 'dark' ? 'ライトモードへ' : t === 'light' ? 'システム設定へ' : 'ダークモードへ';
+  ['theme-btn-home','theme-btn-sched'].forEach(id => {
+    const btn = document.getElementById(id);
+    if (btn) { btn.textContent = icon; btn.title = title; }
+  });
 }
 
-/* ======== TOAST ======== */
-let _toastTimer;
+/* ================================================================
+   TOAST
+================================================================ */
+let _toastT;
 function showToast(msg) {
   const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.classList.add('show');
-  clearTimeout(_toastTimer);
-  _toastTimer = setTimeout(() => el.classList.remove('show'), 2600);
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(_toastT);
+  _toastT = setTimeout(() => el.classList.remove('show'), 2600);
 }
 
-/* ======== SAMPLE DATA ======== */
-function getSampleData() {
-  return {
-    title: '秋のイベント日程調整',
-    events: [
-      { id: 'e1', title: '10/4 渋谷LIVE' },
-      { id: 'e2', title: '10/11 代々木公園' },
-      { id: 'e3', title: '10/18 下北沢Club' },
-    ],
-    members: [
-      { id: 'm1', name: '田中' },
-      { id: 'm2', name: '佐藤' },
-      { id: 'm3', name: '山田' },
-      { id: 'm4', name: '鈴木' },
-    ],
-    cells: {
-      m1: { e1: 1, e2: 2, e3: 0 },
-      m2: { e1: 1, e2: 1, e3: 3 },
-      m3: { e1: 2, e2: 1, e3: 1 },
-      m4: { e1: 3, e2: 2, e3: 1 },
-    }
-  };
-}
-
-/* ======== INIT ======== */
+/* ================================================================
+   INIT
+================================================================ */
 function init() {
-  updateThemeBtn();
-  if (loadFromHash()) { render(); return; }
-  if (loadFromStorage()) { render(); return; }
-  state = getSampleData();
-  render();
+  loadList();
+  updateThemeBtns();
+  route();
 }
 
 init();
