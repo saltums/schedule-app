@@ -382,7 +382,7 @@
 
     /* ── ADD CONTROLS ── */
     .add-controls { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
-    .add-group { display: flex; gap: 6px; }
+    .add-group { display: flex; gap: 6px; flex-wrap: wrap; }
     .add-input {
       font-size: 14px; color: var(--text); background: var(--surface);
       border: 1px solid var(--border); border-radius: var(--r-sm);
@@ -391,12 +391,24 @@
     }
     .add-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-lt); }
     .add-input::placeholder { color: var(--text-muted); }
+    input[type="date"].add-input {
+      width: 148px; cursor: pointer;
+      color-scheme: light dark;
+    }
+    .add-input.label-input { width: 120px; }
     .btn-add {
       background: var(--accent); color: var(--accent-fg);
       border-radius: var(--r-sm); padding: 9px 14px; font-size: 13px; font-weight: 600;
       transition: background .15s; white-space: nowrap;
     }
     .btn-add:hover { background: var(--accent-h); }
+    .btn-add-sub {
+      background: var(--surface-2); color: var(--text-muted);
+      border: 1px solid var(--border); border-radius: var(--r-sm);
+      padding: 9px 12px; font-size: 12px; white-space: nowrap;
+      transition: background .15s, color .15s;
+    }
+    .btn-add-sub:hover { background: var(--accent-lt); color: var(--accent); border-color: var(--accent); }
 
     /* ── LEGEND ── */
     .legend { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 12px; }
@@ -512,7 +524,9 @@
 
     /* ── RESPONSIVE ── */
     @media (max-width: 480px) {
-      .add-input { width: 140px; }
+      .add-input { width: 130px; }
+      input[type="date"].add-input { width: 136px; }
+      .add-input.label-input { width: 100px; }
       .th-name { min-width: 100px; }
       .add-controls { gap: 8px; }
     }
@@ -593,11 +607,13 @@
         <input class="add-input" id="add-member" placeholder="参加者名"
                onkeydown="if(event.key==='Enter')addMemberFromInput()">
         <button class="btn-add" onclick="addMemberFromInput()">追加</button>
+        <button class="btn-add-sub" onclick="addAllMasterMembers()" title="マスターの全メンバーを追加">全員</button>
       </div>
       <div class="add-group">
-        <input class="add-input" id="add-event" placeholder="日程・イベント名"
-               onkeydown="if(event.key==='Enter')addEventFromInput()">
-        <button class="btn-add" onclick="addEventFromInput()">追加</button>
+        <input class="add-input" type="date" id="add-event-date">
+        <input class="add-input label-input" id="add-event-label" placeholder="メモ（任意）"
+               onkeydown="if(event.key==='Enter')addEventFromDate()">
+        <button class="btn-add" onclick="addEventFromDate()">追加</button>
       </div>
     </div>
     <div class="legend">
@@ -629,7 +645,7 @@
       </svg>
       共有
     </button>
-    <button class="bar-btn" onclick="focusInput('add-event')">
+    <button class="bar-btn" onclick="focusInput('add-event-date')">
       <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
         <rect x="2" y="3" width="14" height="13" rx="2" stroke="currentColor" stroke-width="1.8"/>
         <line x1="2" y1="7" x2="16" y2="7" stroke="currentColor" stroke-width="1.8"/>
@@ -952,6 +968,12 @@ function renderSchedule() {
   const banner = document.getElementById('shared-banner');
   banner.classList.toggle('hidden', !isShared);
 
+  // Set default date to today if not already set
+  const dateEl = document.getElementById('add-event-date');
+  if (dateEl && !dateEl.value) {
+    dateEl.value = new Date().toISOString().slice(0, 10);
+  }
+
   renderMatrix();
 }
 
@@ -1063,7 +1085,7 @@ function renderMatrix() {
         <button class="ev-del" onclick="deleteEvent('${ev.id}')" title="削除">✕</button>
       </div></th>`;
   });
-  h += `<th class="th-addcol"><button class="btn-addcol" onclick="focusInput('add-event')" title="日程を追加">＋</button></th>`;
+  h += `<th class="th-addcol"><button class="btn-addcol" onclick="focusInput('add-event-date')" title="日程を追加">＋</button></th>`;
   h += '</tr></thead><tbody>';
 
   members.forEach((m, i) => {
@@ -1127,18 +1149,43 @@ function addMemberFromInput() {
   el.value = ''; el.focus();
 }
 
-function addEventFromInput() {
-  const el = document.getElementById('add-event');
-  const title = el.value.trim();
-  if (!title) { el.focus(); return; }
+function addEventFromDate() {
+  const dateEl  = document.getElementById('add-event-date');
+  const labelEl = document.getElementById('add-event-label');
+  const dateVal = dateEl.value;
+  if (!dateVal) { dateEl.focus(); return; }
+  const d = new Date(dateVal + 'T00:00:00');
+  const dow = ['日','月','火','水','木','金','土'][d.getDay()];
+  const m = d.getMonth() + 1, day = d.getDate();
+  const label = labelEl.value.trim();
+  const title = label ? `${m}/${day}(${dow}) ${label}` : `${m}/${day}(${dow})`;
   current.events.push({ id: uid(), title });
   if (!isShared) saveCurrentToList();
   renderMatrix();
-  el.value = ''; el.focus();
+  labelEl.value = '';
+  // Advance date by 1 day for next entry
+  const next = new Date(d); next.setDate(next.getDate() + 1);
+  dateEl.value = next.toISOString().slice(0, 10);
+  labelEl.focus();
   setTimeout(() => {
     const w = document.querySelector('.table-scroll');
     if (w) w.scrollLeft = w.scrollWidth;
   }, 0);
+}
+
+function addAllMasterMembers() {
+  const existing = new Set(current.members.map(m => m.name));
+  let added = 0;
+  memberMaster.forEach(m => {
+    if (!existing.has(m.name)) {
+      current.members.push({ id: uid(), name: m.name });
+      added++;
+    }
+  });
+  if (added > 0) {
+    if (!isShared) saveCurrentToList();
+    renderMatrix();
+  }
 }
 
 function deleteMember(id) {
