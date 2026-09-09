@@ -141,11 +141,63 @@
     .scard-del:hover { background: var(--s3-bg); color: var(--s3); }
 
     .empty-home {
-      text-align: center; padding: 64px 16px; color: var(--text-muted);
+      text-align: center; padding: 48px 16px; color: var(--text-muted);
     }
     .empty-home-icon { font-size: 48px; margin-bottom: 16px; }
     .empty-home strong { display: block; font-size: 16px; color: var(--text); margin-bottom: 8px; }
     .empty-home p { font-size: 14px; }
+
+    /* ── MEMBER MASTER ── */
+    .master-section { margin-top: 32px; }
+    .master-header {
+      display: flex; align-items: center; justify-content: space-between;
+      cursor: pointer; user-select: none; margin-bottom: 12px;
+    }
+    .master-header:hover .home-section-title { color: var(--accent); }
+    .master-chevron {
+      font-size: 12px; color: var(--text-muted); transition: transform .2s;
+    }
+    .master-section.open .master-chevron { transform: rotate(180deg); }
+    .master-body { display: none; }
+    .master-section.open .master-body { display: block; }
+    .master-list {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--r); overflow: hidden; margin-bottom: 10px;
+    }
+    .master-row {
+      display: flex; align-items: center; gap: 6px;
+      padding: 9px 10px 9px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .master-row:last-child { border-bottom: none; }
+    .master-name {
+      flex: 1; font-size: 14px; font-weight: 500; cursor: text;
+    }
+    .master-name:hover { color: var(--accent); }
+    .master-row-btns { display: flex; gap: 1px; }
+    .mrbtn {
+      width: 26px; height: 26px; border-radius: 5px; font-size: 11px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text-muted); transition: background .15s, color .15s;
+    }
+    .mrbtn:hover { background: var(--surface-2); color: var(--text); }
+    .mrbtn.del:hover { background: var(--s3-bg); color: var(--s3); }
+    .master-add-row {
+      display: flex; gap: 8px; align-items: center;
+    }
+    .master-add-input {
+      flex: 1; height: 38px; padding: 0 12px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--r-sm); font-size: 14px; color: var(--text);
+    }
+    .master-add-input:focus { border-color: var(--accent); outline: none; }
+    .master-add-btn {
+      height: 38px; padding: 0 16px;
+      background: var(--accent); color: var(--accent-fg);
+      border-radius: var(--r-sm); font-size: 14px; font-weight: 600;
+      white-space: nowrap; transition: opacity .15s;
+    }
+    .master-add-btn:hover { opacity: .88; }
 
     /* FAB */
     .fab-wrap {
@@ -480,6 +532,22 @@
   <main class="home-main">
     <p class="home-section-title">保存済みのスケジュール</p>
     <div id="schedule-list"></div>
+
+    <div class="master-section" id="master-section">
+      <div class="master-header" onclick="toggleMasterSection()">
+        <p class="home-section-title" style="margin:0">メンバー設定</p>
+        <span class="master-chevron">▼</span>
+      </div>
+      <div class="master-body">
+        <div class="master-list" id="master-list"></div>
+        <div class="master-add-row">
+          <input class="master-add-input" id="master-add-input"
+                 placeholder="名前を入力…"
+                 onkeydown="if(event.key==='Enter')addMasterMember()">
+          <button class="master-add-btn" onclick="addMasterMember()">追加</button>
+        </div>
+      </div>
+    </div>
   </main>
   <div class="fab-wrap">
     <button class="fab" onclick="newSchedule()">
@@ -634,6 +702,8 @@
 const STATUS  = ['—', '○', '△', '×'];
 const STATUS_NEXT = [1, 2, 3, 0];
 const LS_KEY  = 'schedule_list_v2';
+const LS_MEMBERS = 'member_master_v1';
+const DEFAULT_MEMBERS = ['ハギ','おぐら','一也','シュウヘイ','ニシオ','トモユキ','大塚'];
 
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
 function esc(s) {
@@ -649,9 +719,10 @@ function fmtDate(iso) {
 /* ================================================================
    STATE
 ================================================================ */
-let scheduleList = [];  // [{id, title, updatedAt, events, members, cells}]
-let current     = null; // schedule being edited (object ref in list, or temp)
+let scheduleList = [];
+let current     = null;
 let isShared    = false;
+let memberMaster = [];
 
 function saveList() {
   try { localStorage.setItem(LS_KEY, JSON.stringify(scheduleList)); } catch(e) {}
@@ -663,6 +734,19 @@ function loadList() {
     if (s) { const d = JSON.parse(s); if (Array.isArray(d)) { scheduleList = d; return; } }
   } catch(e) {}
   scheduleList = [];
+}
+
+function saveMasterMembers() {
+  try { localStorage.setItem(LS_MEMBERS, JSON.stringify(memberMaster)); } catch(e) {}
+}
+
+function loadMasterMembers() {
+  try {
+    const s = localStorage.getItem(LS_MEMBERS);
+    if (s) { const d = JSON.parse(s); if (Array.isArray(d)) { memberMaster = d; return; } }
+  } catch(e) {}
+  memberMaster = DEFAULT_MEMBERS.map(name => ({ id: uid(), name }));
+  saveMasterMembers();
 }
 
 function saveCurrentToList() {
@@ -729,24 +813,97 @@ function renderHome() {
     list.innerHTML = `<div class="empty-home">
       <div class="empty-home-icon">📋</div>
       <strong>スケジュールがまだありません</strong>
-      <p>下のボタンから作成してください</p>
+      <p>下の＋ボタンから作成してください</p>
     </div>`;
+  } else {
+    list.innerHTML = scheduleList.map(s => `
+      <div class="sched-card" onclick="openSchedule('${s.id}')">
+        <div class="scard-body">
+          <div class="scard-title">${esc(s.title || '無題のスケジュール')}</div>
+          <div class="scard-meta">
+            ${s.members?.length ?? 0}名 · ${s.events?.length ?? 0}件
+            ${s.updatedAt ? ' · ' + fmtDate(s.updatedAt) + '更新' : ''}
+          </div>
+        </div>
+        <button class="scard-del" onclick="deleteSchedule(event,'${s.id}')" title="削除">✕</button>
+        <span class="scard-arrow">›</span>
+      </div>
+    `).join('');
+  }
+  renderMasterMembers();
+}
+
+/* ── MASTER MEMBERS ── */
+function toggleMasterSection() {
+  document.getElementById('master-section').classList.toggle('open');
+}
+
+function renderMasterMembers() {
+  const el = document.getElementById('master-list');
+  if (!el) return;
+  if (memberMaster.length === 0) {
+    el.innerHTML = `<div style="padding:14px;font-size:13px;color:var(--text-muted);text-align:center">まだメンバーがいません</div>`;
     return;
   }
-
-  list.innerHTML = scheduleList.map(s => `
-    <div class="sched-card" onclick="openSchedule('${s.id}')">
-      <div class="scard-body">
-        <div class="scard-title">${esc(s.title || '無題のスケジュール')}</div>
-        <div class="scard-meta">
-          ${s.members?.length ?? 0}名 · ${s.events?.length ?? 0}件
-          ${s.updatedAt ? ' · ' + fmtDate(s.updatedAt) + '更新' : ''}
-        </div>
+  el.innerHTML = memberMaster.map((m, i) => `
+    <div class="master-row">
+      <span class="master-name" ondblclick="editMasterMemberName('${m.id}',this)"
+            title="ダブルタップで編集">${esc(m.name)}</span>
+      <div class="master-row-btns">
+        <button class="mrbtn" onclick="moveMasterMember('${m.id}',-1)" title="上へ"
+          ${i===0?'style="visibility:hidden"':''}>↑</button>
+        <button class="mrbtn" onclick="moveMasterMember('${m.id}',1)" title="下へ"
+          ${i===memberMaster.length-1?'style="visibility:hidden"':''}>↓</button>
+        <button class="mrbtn del" onclick="deleteMasterMember('${m.id}')" title="削除">✕</button>
       </div>
-      <button class="scard-del" onclick="deleteSchedule(event,'${s.id}')" title="削除">✕</button>
-      <span class="scard-arrow">›</span>
     </div>
   `).join('');
+}
+
+function addMasterMember() {
+  const el = document.getElementById('master-add-input');
+  const name = el.value.trim();
+  if (!name) { el.focus(); return; }
+  memberMaster.push({ id: uid(), name });
+  saveMasterMembers();
+  renderMasterMembers();
+  el.value = ''; el.focus();
+}
+
+function deleteMasterMember(id) {
+  memberMaster = memberMaster.filter(m => m.id !== id);
+  saveMasterMembers();
+  renderMasterMembers();
+}
+
+function moveMasterMember(id, dir) {
+  const i = memberMaster.findIndex(m => m.id === id);
+  const j = i + dir;
+  if (j < 0 || j >= memberMaster.length) return;
+  [memberMaster[i], memberMaster[j]] = [memberMaster[j], memberMaster[i]];
+  saveMasterMembers();
+  renderMasterMembers();
+}
+
+function editMasterMemberName(id, el) {
+  const m = memberMaster.find(m => m.id === id);
+  if (!m) return;
+  const inp = document.createElement('input');
+  inp.style.cssText = 'flex:1;border:none;background:transparent;font:inherit;outline:none;color:inherit';
+  inp.value = m.name;
+  el.replaceWith(inp); inp.focus(); inp.select();
+  let done = false;
+  const save = () => {
+    if (done) return; done = true;
+    const v = inp.value.trim(); if (v) m.name = v;
+    saveMasterMembers();
+    renderMasterMembers();
+  };
+  inp.addEventListener('blur', save);
+  inp.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); save(); }
+    if (e.key === 'Escape') { done = true; renderMasterMembers(); }
+  });
 }
 
 function goHome() {
@@ -761,7 +918,9 @@ function openSchedule(id) {
 function createNew() {
   const s = {
     id: uid(), title: '', updatedAt: new Date().toISOString(),
-    events: [], members: [], cells: {}
+    events: [],
+    members: memberMaster.map(m => ({ id: uid(), name: m.name })),
+    cells: {}
   };
   scheduleList.unshift(s);
   saveList();
@@ -1163,6 +1322,7 @@ function showToast(msg) {
 ================================================================ */
 function init() {
   loadList();
+  loadMasterMembers();
   updateThemeBtns();
   route();
 }
