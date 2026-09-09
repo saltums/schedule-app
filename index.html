@@ -182,6 +182,18 @@
     }
     .mrbtn:hover { background: var(--surface-2); color: var(--text); }
     .mrbtn.del:hover { background: var(--s3-bg); color: var(--s3); }
+    .role-badge {
+      font-size: 10px; font-weight: 700; border-radius: 4px;
+      padding: 2px 7px; cursor: pointer; white-space: nowrap;
+      transition: background .15s, color .15s, border-color .15s;
+      border: 1.5px solid transparent; letter-spacing: .03em;
+    }
+    .role-badge.regular {
+      background: var(--accent-lt); color: var(--accent); border-color: var(--accent);
+    }
+    .role-badge.support {
+      background: var(--surface-2); color: var(--text-muted); border-color: var(--border);
+    }
     .master-add-row {
       display: flex; gap: 8px; align-items: center;
     }
@@ -402,13 +414,21 @@
       transition: background .15s; white-space: nowrap;
     }
     .btn-add:hover { background: var(--accent-h); }
-    .btn-add-sub {
-      background: var(--surface-2); color: var(--text-muted);
-      border: 1px solid var(--border); border-radius: var(--r-sm);
-      padding: 9px 12px; font-size: 12px; white-space: nowrap;
-      transition: background .15s, color .15s;
+    .member-set-group {
+      display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
     }
-    .btn-add-sub:hover { background: var(--accent-lt); color: var(--accent); border-color: var(--accent); }
+    .member-set-label {
+      font-size: 11px; font-weight: 700; letter-spacing: .05em;
+      text-transform: uppercase; color: var(--text-muted); white-space: nowrap;
+    }
+    .btn-member-set {
+      height: 36px; padding: 0 16px;
+      border: 1.5px solid var(--border); border-radius: var(--r-sm);
+      font-size: 13px; font-weight: 600; color: var(--text-muted);
+      background: var(--surface); transition: all .15s; white-space: nowrap;
+    }
+    .btn-member-set:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-lt); }
+    .btn-member-set.active { border-color: var(--accent); color: var(--accent); background: var(--accent-lt); }
 
     /* ── LEGEND ── */
     .legend { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 12px; }
@@ -603,11 +623,10 @@
       </div>
     </div>
     <div class="add-controls">
-      <div class="add-group">
-        <input class="add-input" id="add-member" placeholder="参加者名"
-               onkeydown="if(event.key==='Enter')addMemberFromInput()">
-        <button class="btn-add" onclick="addMemberFromInput()">追加</button>
-        <button class="btn-add-sub" onclick="addAllMasterMembers()" title="マスターの全メンバーを追加">全員</button>
+      <div class="member-set-group">
+        <span class="member-set-label">参加者</span>
+        <button class="btn-member-set" id="btn-set-regular" onclick="setScheduleMembers('regular')">レギュラー</button>
+        <button class="btn-member-set" id="btn-set-all" onclick="setScheduleMembers('all')">全員</button>
       </div>
       <div class="add-group">
         <input class="add-input" type="date" id="add-event-date">
@@ -626,14 +645,14 @@
   </main>
 
   <div class="bottom-bar">
-    <button class="bar-btn" onclick="focusInput('add-member')">
+    <button class="bar-btn" onclick="setScheduleMembers('regular')">
       <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
         <circle cx="7" cy="6" r="3" stroke="currentColor" stroke-width="1.8"/>
         <path d="M1 15c0-3.314 2.686-6 6-6s6 2.686 6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
         <line x1="14" y1="10" x2="14" y2="16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
         <line x1="11" y1="13" x2="17" y2="13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
       </svg>
-      参加者を追加
+      レギュラー追加
     </button>
     <button class="bar-btn share" onclick="openShareSheet()">
       <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
@@ -719,7 +738,12 @@ const STATUS  = ['—', '○', '△', '×'];
 const STATUS_NEXT = [1, 2, 3, 0];
 const LS_KEY  = 'schedule_list_v2';
 const LS_MEMBERS = 'member_master_v1';
-const DEFAULT_MEMBERS = ['ハギ','おぐら','一也','シュウヘイ','ニシオ','トモユキ','大塚'];
+const DEFAULT_MEMBERS = [
+  {name:'ハギ',role:'regular'},{name:'おぐら',role:'regular'},
+  {name:'一也',role:'regular'},{name:'シュウヘイ',role:'regular'},
+  {name:'ニシオ',role:'regular'},{name:'トモユキ',role:'regular'},
+  {name:'大塚',role:'regular'}
+];
 
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
 function esc(s) {
@@ -759,9 +783,15 @@ function saveMasterMembers() {
 function loadMasterMembers() {
   try {
     const s = localStorage.getItem(LS_MEMBERS);
-    if (s) { const d = JSON.parse(s); if (Array.isArray(d)) { memberMaster = d; return; } }
+    if (s) {
+      const d = JSON.parse(s);
+      if (Array.isArray(d)) {
+        memberMaster = d.map(m => ({ role: 'regular', ...m }));
+        return;
+      }
+    }
   } catch(e) {}
-  memberMaster = DEFAULT_MEMBERS.map(name => ({ id: uid(), name }));
+  memberMaster = DEFAULT_MEMBERS.map(m => ({ id: uid(), ...m }));
   saveMasterMembers();
 }
 
@@ -865,6 +895,8 @@ function renderMasterMembers() {
     <div class="master-row">
       <span class="master-name" ondblclick="editMasterMemberName('${m.id}',this)"
             title="ダブルタップで編集">${esc(m.name)}</span>
+      <button class="role-badge ${m.role}" onclick="toggleMemberRole('${m.id}')"
+              title="クリックで切替">${m.role === 'regular' ? 'レギュラー' : 'サポート'}</button>
       <div class="master-row-btns">
         <button class="mrbtn" onclick="moveMasterMember('${m.id}',-1)" title="上へ"
           ${i===0?'style="visibility:hidden"':''}>↑</button>
@@ -874,6 +906,14 @@ function renderMasterMembers() {
       </div>
     </div>
   `).join('');
+}
+
+function toggleMemberRole(id) {
+  const m = memberMaster.find(m => m.id === id);
+  if (!m) return;
+  m.role = m.role === 'regular' ? 'support' : 'regular';
+  saveMasterMembers();
+  renderMasterMembers();
 }
 
 function addMasterMember() {
@@ -935,7 +975,7 @@ function createNew() {
   const s = {
     id: uid(), title: '', updatedAt: new Date().toISOString(),
     events: [],
-    members: memberMaster.map(m => ({ id: uid(), name: m.name })),
+    members: memberMaster.filter(m => m.role === 'regular').map(m => ({ id: uid(), name: m.name })),
     cells: {}
   };
   scheduleList.unshift(s);
@@ -1173,19 +1213,19 @@ function addEventFromDate() {
   }, 0);
 }
 
-function addAllMasterMembers() {
+function setScheduleMembers(mode) {
+  const pool = mode === 'regular'
+    ? memberMaster.filter(m => m.role === 'regular')
+    : memberMaster;
   const existing = new Set(current.members.map(m => m.name));
-  let added = 0;
-  memberMaster.forEach(m => {
-    if (!existing.has(m.name)) {
-      current.members.push({ id: uid(), name: m.name });
-      added++;
-    }
+  pool.forEach(m => {
+    if (!existing.has(m.name)) current.members.push({ id: uid(), name: m.name });
   });
-  if (added > 0) {
-    if (!isShared) saveCurrentToList();
-    renderMatrix();
-  }
+  if (!isShared) saveCurrentToList();
+  renderMatrix();
+  // Update active state on buttons
+  document.getElementById('btn-set-regular')?.classList.toggle('active', mode === 'regular');
+  document.getElementById('btn-set-all')?.classList.toggle('active', mode === 'all');
 }
 
 function deleteMember(id) {
