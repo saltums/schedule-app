@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>日程調整</title>
+  <script>
+    const _t = localStorage.getItem('theme_pref');
+    if (_t && _t !== 'system') document.documentElement.setAttribute('data-theme', _t);
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Outfit:wght@600;700&display=swap">
+  <style>
+    :root {
+      --bg: #F2F0EC;
+      --surface: #FFFFFF;
+      --surface-2: #F8F7F4;
+      --border: #E0DCD4;
+      --border-strong: #C4BEB4;
+      --text: #1A1815;
+      --text-muted: #88837A;
+      --accent: #0D7356;
+      --accent-hover: #0A5C44;
+      --accent-fg: #FFFFFF;
+      --accent-light: #E3F4EE;
+      --s0-icon: #C2BDB6;
+      --s1-bg: #E6F4ED; --s1-icon: #16A05E; --s1-hover: #D0EBE0;
+      --s2-bg: #FFF4DC; --s2-icon: #B87000; --s2-hover: #FAEDC8;
+      --s3-bg: #FDECEA; --s3-icon: #CC3B3B; --s3-hover: #F9D9D7;
+      --sticky-shadow: 4px 0 10px -2px rgba(0,0,0,0.08);
+      --r: 8px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #111310; --surface: #1B1D1A; --surface-2: #151714;
+        --border: #2A2D28; --border-strong: #3A3D38;
+        --text: #EAE7E1; --text-muted: #7A7870;
+        --accent: #28A67A; --accent-hover: #33BF8D; --accent-fg: #071A12; --accent-light: #0C2218;
+        --s0-icon: #4A4740;
+        --s1-bg: #0C2118; --s1-icon: #3AB872; --s1-hover: #112A1E;
+        --s2-bg: #211808; --s2-icon: #D09020; --s2-hover: #2C2010;
+        --s3-bg: #201010; --s3-icon: #E05858; --s3-hover: #2C1414;
+        --sticky-shadow: 4px 0 14px rgba(0,0,0,0.45);
+      }
+    }
+    :root[data-theme="dark"] {
+      --bg: #111310; --surface: #1B1D1A; --surface-2: #151714;
+      --border: #2A2D28; --border-strong: #3A3D38;
+      --text: #EAE7E1; --text-muted: #7A7870;
+      --accent: #28A67A; --accent-hover: #33BF8D; --accent-fg: #071A12; --accent-light: #0C2218;
+      --s0-icon: #4A4740;
+      --s1-bg: #0C2118; --s1-icon: #3AB872; --s1-hover: #112A1E;
+      --s2-bg: #211808; --s2-icon: #D09020; --s2-hover: #2C2010;
+      --s3-bg: #201010; --s3-icon: #E05858; --s3-hover: #2C1414;
+      --sticky-shadow: 4px 0 14px rgba(0,0,0,0.45);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Noto Sans JP', 'Hiragino Sans', sans-serif;
+      font-size: 14px; line-height: 1.6;
+      background: var(--bg); color: var(--text); min-height: 100vh;
+    }
+    button { font-family: inherit; cursor: pointer; }
+    input { font-family: inherit; }
+
+    /* ── HEADER ── */
+    .header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 24px; height: 54px;
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; z-index: 20;
+    }
+    .wordmark {
+      font-family: 'Outfit', sans-serif; font-size: 17px; font-weight: 700;
+      color: var(--accent); letter-spacing: -0.02em;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .wordmark-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--accent); display: inline-block;
+    }
+    .header-actions { display: flex; gap: 6px; align-items: center; }
+
+    /* ── MAIN ── */
+    .main { max-width: 1140px; margin: 0 auto; padding: 32px 24px 64px; }
+
+    /* ── TITLE INPUT ── */
+    .title-row { margin-bottom: 24px; }
+    .schedule-title {
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 22px; font-weight: 700; color: var(--text);
+      background: transparent; border: none; outline: none; width: 100%;
+      padding: 2px 0 6px; border-bottom: 2px solid transparent;
+      transition: border-color 0.2s;
+    }
+    .schedule-title:focus { border-bottom-color: var(--accent); }
+    .schedule-title::placeholder { color: var(--text-muted); font-weight: 400; font-size: 18px; }
+
+    /* ── TABLE WRAPPER ── */
+    .table-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--r); overflow: hidden;
+    }
+    .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+    /* ── MATRIX TABLE ── */
+    .matrix {
+      border-collapse: collapse; width: 100%;
+      min-width: max-content; table-layout: auto;
+    }
+
+    /* Column header cells */
+    .th-name {
+      position: sticky; left: 0; z-index: 5;
+      background: var(--surface-2);
+      min-width: 140px; max-width: 200px;
+      padding: 10px 16px;
+      text-align: left; font-size: 10.5px; font-weight: 700;
+      letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-muted);
+      border-right: 1px solid var(--border); border-bottom: 1px solid var(--border);
+      box-shadow: var(--sticky-shadow);
+    }
+    .th-event {
+      min-width: 130px; padding: 0;
+      border-right: 1px solid var(--border); border-bottom: 1px solid var(--border);
+      background: var(--surface); vertical-align: top;
+    }
+    .th-addcol {
+      width: 52px; min-width: 52px;
+      border-bottom: 1px solid var(--border); background: var(--surface);
+    }
+
+    .event-header {
+      padding: 10px 12px 8px;
+      display: flex; align-items: flex-start; justify-content: space-between; gap: 4px;
+      min-height: 60px;
+    }
+    .event-name {
+      font-size: 13px; font-weight: 600; color: var(--text);
+      line-height: 1.35; word-break: break-word; flex: 1;
+      cursor: default;
+    }
+    .event-name.editable { cursor: text; }
+    .event-name.editable:hover { color: var(--accent); }
+
+    .th-del {
+      flex-shrink: 0; width: 18px; height: 18px;
+      border: none; background: none;
+      color: var(--text-muted); font-size: 11px;
+      border-radius: 4px; display: flex; align-items: center; justify-content: center;
+      opacity: 0; transition: opacity 0.15s, background 0.15s, color 0.15s;
+      padding: 0; line-height: 1;
+    }
+    .th-event:hover .th-del { opacity: 1; }
+    .th-del:hover { background: var(--s3-bg); color: var(--s3-icon); }
+
+    /* Add column button */
+    .btn-addcol {
+      width: 100%; height: 100%; min-height: 60px;
+      background: none; border: none;
+      color: var(--text-muted); font-size: 22px; font-weight: 300;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s, color 0.15s;
+    }
+    .btn-addcol:hover { background: var(--accent-light); color: var(--accent); }
+
+    /* Member rows */
+    .td-name {
+      position: sticky; left: 0; z-index: 3;
+      background: var(--surface); padding: 0 8px 0 14px;
+      border-right: 1px solid var(--border); border-bottom: 1px solid var(--border);
+      box-shadow: var(--sticky-shadow);
+    }
+    .name-cell {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 4px; min-height: 52px; padding: 6px 0;
+    }
+    .member-name {
+      font-size: 14px; font-weight: 500; flex: 1;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      cursor: text;
+    }
+    .member-name:hover { color: var(--accent); }
+
+    .row-actions {
+      display: flex; gap: 1px; opacity: 0;
+      transition: opacity 0.15s; flex-shrink: 0;
+    }
+    tr:hover .row-actions { opacity: 1; }
+
+    .icon-btn {
+      width: 22px; height: 22px; border: none; background: none;
+      color: var(--text-muted); border-radius: 4px; font-size: 11px;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s, color 0.15s; padding: 0; line-height: 1;
+    }
+    .icon-btn:hover { background: var(--border); color: var(--text); }
+    .icon-btn.del:hover { background: var(--s3-bg); color: var(--s3-icon); }
+
+    /* Status cells */
+    .td-cell {
+      border-right: 1px solid var(--border); border-bottom: 1px solid var(--border);
+      text-align: center; cursor: pointer;
+      transition: background 0.1s;
+    }
+    .td-cell:last-child { border-right: none; }
+    .cell-inner {
+      display: flex; align-items: center; justify-content: center;
+      height: 52px; width: 100%;
+    }
+    .status-icon {
+      font-size: 20px; font-weight: 700; line-height: 1;
+      font-variant-numeric: tabular-nums; user-select: none;
+    }
+
+    .td-cell.s0 { background: var(--surface); }
+    .td-cell.s0:hover { background: var(--surface-2); }
+    .td-cell.s0 .status-icon { color: var(--s0-icon); }
+    .td-cell.s1 { background: var(--s1-bg); }
+    .td-cell.s1:hover { background: var(--s1-hover); }
+    .td-cell.s1 .status-icon { color: var(--s1-icon); }
+    .td-cell.s2 { background: var(--s2-bg); }
+    .td-cell.s2:hover { background: var(--s2-hover); }
+    .td-cell.s2 .status-icon { color: var(--s2-icon); }
+    .td-cell.s3 { background: var(--s3-bg); }
+    .td-cell.s3:hover { background: var(--s3-hover); }
+    .td-cell.s3 .status-icon { color: var(--s3-icon); }
+
+    .td-spacer { border-right: none; border-bottom: 1px solid var(--border); width: 52px; }
+
+    /* Summary row */
+    .summary-row td {
+      background: var(--surface-2);
+      border-top: 2px solid var(--border-strong);
+    }
+    .summary-row .td-cell { cursor: default; }
+    .summary-row .td-cell:hover { background: var(--surface-2) !important; }
+
+    .summary-label {
+      font-size: 10.5px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.06em; color: var(--text-muted); padding: 10px 14px;
+    }
+
+    .summary-counts {
+      display: flex; align-items: center; justify-content: center;
+      gap: 4px; flex-wrap: wrap; padding: 8px 6px;
+    }
+    .chip {
+      font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums;
+      padding: 2px 7px; border-radius: 100px;
+    }
+    .chip.c { background: var(--s1-bg); color: var(--s1-icon); }
+    .chip.t { background: var(--s2-bg); color: var(--s2-icon); }
+    .chip.x { background: var(--s3-bg); color: var(--s3-icon); }
+
+    /* ── ADD CONTROLS ── */
+    .add-controls {
+      display: flex; gap: 12px; margin-top: 16px; flex-wrap: wrap;
+    }
+    .add-group { display: flex; gap: 6px; align-items: center; }
+    .add-input {
+      font-size: 14px; color: var(--text); background: var(--surface);
+      border: 1px solid var(--border); border-radius: var(--r);
+      padding: 8px 12px; outline: none; width: 190px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .add-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-light);
+    }
+    .add-input::placeholder { color: var(--text-muted); }
+
+    /* ── LEGEND ── */
+    .legend {
+      display: flex; gap: 16px; margin-top: 14px; flex-wrap: wrap;
+    }
+    .legend-item {
+      display: flex; align-items: center; gap: 5px;
+      font-size: 12px; color: var(--text-muted);
+    }
+    .legend-icon { font-size: 14px; font-weight: 700; }
+    .legend-icon.s0 { color: var(--s0-icon); }
+    .legend-icon.s1 { color: var(--s1-icon); }
+    .legend-icon.s2 { color: var(--s2-icon); }
+    .legend-icon.s3 { color: var(--s3-icon); }
+
+    /* ── BUTTONS ── */
+    .btn {
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 13px; font-weight: 500;
+      padding: 7px 13px; border-radius: var(--r);
+      border: 1px solid transparent; white-space: nowrap;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .btn-primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+    .btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+    .btn-ghost { background: none; color: var(--text-muted); border-color: var(--border); }
+    .btn-ghost:hover { background: var(--surface-2); color: var(--text); }
+
+    /* ── INLINE EDIT ── */
+    .inline-edit {
+      font-size: 13px; font-weight: 600; color: var(--text);
+      background: var(--accent-light); border: 1.5px solid var(--accent);
+      border-radius: 5px; padding: 2px 7px; outline: none; width: 100%;
+      font-family: 'Noto Sans JP', sans-serif;
+    }
+    .inline-edit-name {
+      font-size: 14px; font-weight: 500; color: var(--text);
+      background: var(--accent-light); border: 1.5px solid var(--accent);
+      border-radius: 5px; padding: 2px 7px; outline: none; width: 110px;
+      font-family: 'Noto Sans JP', sans-serif;
+    }
+
+    /* ── TOAST ── */
+    .toast {
+      position: fixed; bottom: 24px; left: 50%;
+      transform: translateX(-50%) translateY(12px);
+      background: var(--text); color: var(--surface);
+      font-size: 13px; font-weight: 500;
+      padding: 10px 20px; border-radius: 100px;
+      opacity: 0; transition: opacity 0.2s, transform 0.2s;
+      pointer-events: none; z-index: 9999; white-space: nowrap;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* ── EMPTY STATE ── */
+    .empty-state {
+      padding: 56px 24px; text-align: center; color: var(--text-muted);
+    }
+    .empty-state strong { color: var(--text); font-size: 15px; display: block; margin-bottom: 6px; }
+    .empty-state p { font-size: 13px; }
+
+    /* ── FOCUS ── */
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; } }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 640px) {
+      .main { padding: 20px 14px 48px; }
+      .header { padding: 0 14px; }
+      .add-controls { flex-direction: column; gap: 8px; }
+      .add-input { width: 150px; }
+      .btn { padding: 7px 10px; font-size: 12px; }
+      .header-actions .btn-ghost span.label { display: none; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <header class="header">
+    <div class="wordmark">
+      <span class="wordmark-dot"></span>
+      日程調整
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-ghost" onclick="shareUrl()">
+        <span class="label">共有リンクをコピー</span>
+      </button>
+      <button class="btn btn-ghost" onclick="exportJson()">JSON出力</button>
+      <label class="btn btn-ghost" style="cursor:pointer" title="JSONファイルを読込">
+        JSON読込
+        <input type="file" id="import-file" accept=".json" hidden onchange="importJson(event)">
+      </label>
+      <button class="btn btn-ghost" id="theme-btn" onclick="toggleTheme()" title="テーマ切替" style="padding:7px 10px;font-size:16px">◐</button>
+    </div>
+  </header>
+
+  <main class="main">
+    <div class="title-row">
+      <input class="schedule-title" type="text" id="schedule-title"
+             placeholder="スケジュールのタイトルを入力…"
+             oninput="state.title=this.value; saveState()">
+    </div>
+
+    <div class="table-card">
+      <div class="table-scroll">
+        <div id="table-container"></div>
+      </div>
+    </div>
+
+    <div class="add-controls">
+      <div class="add-group">
+        <input class="add-input" type="text" id="add-member-input"
+               placeholder="参加者名"
+               onkeydown="if(event.key==='Enter')addMemberFromInput()">
+        <button class="btn btn-primary" onclick="addMemberFromInput()">参加者を追加</button>
+      </div>
+      <div class="add-group">
+        <input class="add-input" type="text" id="add-event-input"
+               placeholder="日程・イベント名"
+               onkeydown="if(event.key==='Enter')addEventFromInput()">
+        <button class="btn btn-primary" onclick="addEventFromInput()">日程を追加</button>
+      </div>
+    </div>
+
+    <div class="legend">
+      <div class="legend-item"><span class="legend-icon s1">○</span> 参加可</div>
+      <div class="legend-item"><span class="legend-icon s2">△</span> 未定・調整可</div>
+      <div class="legend-item"><span class="legend-icon s3">×</span> 不参加</div>
+      <div class="legend-item"><span class="legend-icon s0">—</span> 未回答</div>
+      <div class="legend-item" style="margin-left:8px;color:var(--text-muted);font-size:12px">セルをクリックして変更 · 名前をダブルクリックして編集</div>
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ======== STATE ======== */
+const STATUS = ['—', '○', '△', '×'];
+const NEXT = [1, 2, 3, 0];
+const LS_KEY = 'schedule_app_v2';
+
+let state = { title: '', events: [], members: [], cells: {} };
+
+function uid() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+}
+
+function escHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function getStatus(mid, eid) {
+  return state.cells[mid]?.[eid] ?? 0;
+}
+
+function setStatus(mid, eid, s) {
+  if (!state.cells[mid]) state.cells[mid] = {};
+  state.cells[mid][eid] = s;
+}
+
+/* ======== MUTATIONS ======== */
+function toggleStatus(mid, eid) {
+  setStatus(mid, eid, NEXT[getStatus(mid, eid)]);
+  saveState(); render();
+}
+
+function addMember(name) {
+  state.members.push({ id: uid(), name });
+  saveState(); render();
+}
+
+function deleteMember(id) {
+  state.members = state.members.filter(m => m.id !== id);
+  delete state.cells[id];
+  saveState(); render();
+}
+
+function moveMember(id, dir) {
+  const i = state.members.findIndex(m => m.id === id);
+  const j = i + dir;
+  if (j < 0 || j >= state.members.length) return;
+  [state.members[i], state.members[j]] = [state.members[j], state.members[i]];
+  saveState(); render();
+}
+
+function addEvent(title) {
+  state.events.push({ id: uid(), title });
+  saveState(); render();
+  setTimeout(() => {
+    const w = document.querySelector('.table-scroll');
+    if (w) w.scrollLeft = w.scrollWidth;
+  }, 0);
+}
+
+function deleteEvent(id) {
+  state.events = state.events.filter(e => e.id !== id);
+  Object.values(state.cells).forEach(c => delete c[id]);
+  saveState(); render();
+}
+
+/* ======== INPUT HANDLERS ======== */
+function addMemberFromInput() {
+  const el = document.getElementById('add-member-input');
+  const name = el.value.trim();
+  if (!name) { el.focus(); return; }
+  addMember(name);
+  el.value = ''; el.focus();
+}
+
+function addEventFromInput() {
+  const el = document.getElementById('add-event-input');
+  const title = el.value.trim();
+  if (!title) { el.focus(); return; }
+  addEvent(title);
+  el.value = ''; el.focus();
+}
+
+function focusAddEvent() {
+  document.getElementById('add-event-input').focus();
+}
+
+/* ======== INLINE EDIT ======== */
+function editEventTitle(eventId, spanEl) {
+  const ev = state.events.find(e => e.id === eventId);
+  if (!ev) return;
+  const input = document.createElement('input');
+  input.className = 'inline-edit';
+  input.value = ev.title;
+  spanEl.replaceWith(input);
+  input.focus(); input.select();
+  let done = false;
+  const save = () => {
+    if (done) return; done = true;
+    const v = input.value.trim();
+    if (v) ev.title = v;
+    saveState(); render();
+  };
+  input.addEventListener('blur', save);
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); save(); }
+    if (e.key === 'Escape') { done = true; render(); }
+  });
+}
+
+function editMemberName(memberId, spanEl) {
+  const m = state.members.find(m => m.id === memberId);
+  if (!m) return;
+  const input = document.createElement('input');
+  input.className = 'inline-edit-name';
+  input.value = m.name;
+  spanEl.replaceWith(input);
+  input.focus(); input.select();
+  let done = false;
+  const save = () => {
+    if (done) return; done = true;
+    const v = input.value.trim();
+    if (v) m.name = v;
+    saveState(); render();
+  };
+  input.addEventListener('blur', save);
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); save(); }
+    if (e.key === 'Escape') { done = true; render(); }
+  });
+}
+
+/* ======== RENDER ======== */
+function render() {
+  const titleEl = document.getElementById('schedule-title');
+  if (titleEl && document.activeElement !== titleEl) titleEl.value = state.title;
+
+  const container = document.getElementById('table-container');
+  const hasData = state.members.length > 0 || state.events.length > 0;
+
+  if (!hasData) {
+    container.innerHTML = `<div class="empty-state">
+      <strong>データがまだありません</strong>
+      <p>下のフォームから参加者と日程を追加してください。</p>
+    </div>`;
+    return;
+  }
+
+  let h = '<table class="matrix"><thead><tr>';
+
+  // Corner cell
+  h += `<th class="th-name">参加者</th>`;
+
+  // Event columns
+  state.events.forEach(ev => {
+    h += `<th class="th-event">
+      <div class="event-header">
+        <span class="event-name editable"
+              ondblclick="editEventTitle('${ev.id}',this)"
+              title="ダブルクリックで編集">${escHtml(ev.title)}</span>
+        <button class="th-del" onclick="deleteEvent('${ev.id}')" title="削除">✕</button>
+      </div>
+    </th>`;
+  });
+
+  // Add-column button
+  h += `<th class="th-addcol"><button class="btn-addcol" onclick="focusAddEvent()" title="日程を追加">＋</button></th>`;
+  h += '</tr></thead><tbody>';
+
+  // Member rows
+  state.members.forEach((m, i) => {
+    h += `<tr>
+      <td class="td-name">
+        <div class="name-cell">
+          <span class="member-name"
+                ondblclick="editMemberName('${m.id}',this)"
+                title="ダブルクリックで編集">${escHtml(m.name)}</span>
+          <div class="row-actions">
+            <button class="icon-btn" onclick="moveMember('${m.id}',-1)"
+                    title="上へ" ${i===0?'style="visibility:hidden"':''}>↑</button>
+            <button class="icon-btn" onclick="moveMember('${m.id}',1)"
+                    title="下へ" ${i===state.members.length-1?'style="visibility:hidden"':''}>↓</button>
+            <button class="icon-btn del" onclick="deleteMember('${m.id}')" title="削除">✕</button>
+          </div>
+        </div>
+      </td>`;
+
+    state.events.forEach(ev => {
+      const s = getStatus(m.id, ev.id);
+      h += `<td class="td-cell s${s}" onclick="toggleStatus('${m.id}','${ev.id}')">
+        <div class="cell-inner"><span class="status-icon">${STATUS[s]}</span></div>
+      </td>`;
+    });
+
+    h += '<td class="td-spacer"></td></tr>';
+  });
+
+  // Summary row
+  if (state.members.length > 0 && state.events.length > 0) {
+    h += `<tr class="summary-row">
+      <td class="td-name summary-label">集計</td>`;
+    state.events.forEach(ev => {
+      const c = [0,0,0,0];
+      state.members.forEach(m => c[getStatus(m.id,ev.id)]++);
+      h += `<td class="td-cell s0 td-summary">
+        <div class="summary-counts">
+          <span class="chip c">○ ${c[1]}</span>
+          <span class="chip t">△ ${c[2]}</span>
+          <span class="chip x">× ${c[3]}</span>
+        </div>
+      </td>`;
+    });
+    h += '<td class="td-spacer"></td></tr>';
+  }
+
+  h += '</tbody></table>';
+  container.innerHTML = h;
+}
+
+/* ======== PERSISTENCE ======== */
+function saveState() {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch(e) {}
+}
+
+function loadFromStorage() {
+  try {
+    const s = localStorage.getItem(LS_KEY);
+    if (s) {
+      const d = JSON.parse(s);
+      if (d && Array.isArray(d.members)) {
+        state = d;
+        if (!state.cells) state.cells = {};
+        return true;
+      }
+    }
+  } catch(e) {}
+  return false;
+}
+
+function loadFromHash() {
+  try {
+    const h = location.hash;
+    if (!h.startsWith('#data=')) return false;
+    const d = JSON.parse(decodeURIComponent(atob(h.slice(6))));
+    if (d && Array.isArray(d.members)) {
+      state = d;
+      if (!state.cells) state.cells = {};
+      return true;
+    }
+  } catch(e) {}
+  return false;
+}
+
+/* ======== SHARING ======== */
+function shareUrl() {
+  try {
+    const encoded = btoa(encodeURIComponent(JSON.stringify(state)));
+    const url = location.origin + location.pathname + '#data=' + encoded;
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(url).then(() => showToast('共有リンクをコピーしました！')).catch(() => fallbackCopy(url));
+    } else { fallbackCopy(url); }
+  } catch(e) { showToast('コピーに失敗しました'); }
+}
+
+function fallbackCopy(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0';
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand('copy'); showToast('共有リンクをコピーしました！'); }
+  catch(e) { prompt('URLをコピーしてください:', text); }
+  document.body.removeChild(ta);
+}
+
+/* ======== JSON I/O ======== */
+function exportJson() {
+  const json = JSON.stringify(state, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = (state.title || 'schedule') + '_' + new Date().toISOString().slice(0,10) + '.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('JSONファイルを出力しました');
+}
+
+function importJson(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = evt => {
+    try {
+      const d = JSON.parse(evt.target.result);
+      if (!Array.isArray(d.members) || !Array.isArray(d.events)) throw new Error();
+      state = d;
+      if (!state.cells) state.cells = {};
+      saveState(); render();
+      showToast('データを読み込みました');
+    } catch { showToast('ファイルの形式が正しくありません'); }
+    e.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+/* ======== THEME ======== */
+function toggleTheme() {
+  const cur = document.documentElement.getAttribute('data-theme') || 'system';
+  const next = cur === 'system' ? 'dark' : cur === 'dark' ? 'light' : 'system';
+  if (next === 'system') document.documentElement.removeAttribute('data-theme');
+  else document.documentElement.setAttribute('data-theme', next);
+  try { localStorage.setItem('theme_pref', next); } catch(e) {}
+  updateThemeBtn();
+}
+
+function updateThemeBtn() {
+  const btn = document.getElementById('theme-btn');
+  if (!btn) return;
+  const t = document.documentElement.getAttribute('data-theme') || 'system';
+  btn.textContent = t === 'dark' ? '☀' : t === 'light' ? '◑' : '◐';
+  btn.title = t === 'dark' ? 'ライトモードへ' : t === 'light' ? 'システム設定へ' : 'ダークモードへ';
+}
+
+/* ======== TOAST ======== */
+let _toastTimer;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => el.classList.remove('show'), 2600);
+}
+
+/* ======== SAMPLE DATA ======== */
+function getSampleData() {
+  return {
+    title: '秋のイベント日程調整',
+    events: [
+      { id: 'e1', title: '10/4 渋谷LIVE' },
+      { id: 'e2', title: '10/11 代々木公園' },
+      { id: 'e3', title: '10/18 下北沢Club' },
+    ],
+    members: [
+      { id: 'm1', name: '田中' },
+      { id: 'm2', name: '佐藤' },
+      { id: 'm3', name: '山田' },
+      { id: 'm4', name: '鈴木' },
+    ],
+    cells: {
+      m1: { e1: 1, e2: 2, e3: 0 },
+      m2: { e1: 1, e2: 1, e3: 3 },
+      m3: { e1: 2, e2: 1, e3: 1 },
+      m4: { e1: 3, e2: 2, e3: 1 },
+    }
+  };
+}
+
+/* ======== INIT ======== */
+function init() {
+  updateThemeBtn();
+  if (loadFromHash()) { render(); return; }
+  if (loadFromStorage()) { render(); return; }
+  state = getSampleData();
+  render();
+}
+
+init();
+</script>
+</body>
+</html>
