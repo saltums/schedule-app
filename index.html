@@ -243,6 +243,19 @@
     .th-event:hover .ev-del { opacity: 1; }
     .ev-del:hover { background: var(--s3-bg); color: var(--s3); }
 
+    /* Past / upcoming column styling */
+    .th-event.past { opacity: 0.42; }
+    .th-event.past .event-name { color: var(--text-muted); }
+    .td-cell.past { opacity: 0.5; }
+    .th-event.next-upcoming {
+      border-top: 2.5px solid var(--accent);
+    }
+    .upcoming-badge {
+      display: inline-block; font-size: 9px; font-weight: 700;
+      background: var(--accent); color: #fff; border-radius: 3px;
+      padding: 1px 4px; margin-bottom: 3px; letter-spacing: 0.04em;
+    }
+
     .btn-addcol {
       width: 100%; min-height: 56px; color: var(--text-muted); font-size: 22px;
       display: flex; align-items: center; justify-content: center;
@@ -802,6 +815,43 @@ function saveSharedSchedule() {
   showToast('スケジュールを保存しました');
 }
 
+/* ── DATE SORT HELPERS ── */
+function parseEventDate(title) {
+  const m = title.match(/^(\d{1,2})\/(\d{1,2})/);
+  if (!m) return null;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const y = today.getFullYear();
+  const d = new Date(y, parseInt(m[1]) - 1, parseInt(m[2]));
+  if (today - d > 180 * 86400000) d.setFullYear(y + 1);
+  return d;
+}
+
+function getSortedEvents() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  return [...current.events].sort((a, b) => {
+    const da = parseEventDate(a.title), db = parseEventDate(b.title);
+    if (!da && !db) return 0;
+    if (!da) return 1;
+    if (!db) return -1;
+    return da - db;
+  });
+}
+
+let _lastRenderedScheduleId = null;
+
+function autoScrollToUpcoming() {
+  const wrap = document.querySelector('.table-scroll');
+  if (!wrap) return;
+  const upcoming = wrap.querySelector('.th-event.next-upcoming');
+  if (!upcoming) {
+    const allPast = wrap.querySelectorAll('.th-event.past');
+    if (allPast.length) wrap.scrollLeft = wrap.scrollWidth;
+    return;
+  }
+  const stickyWidth = (wrap.querySelector('.th-name') || {offsetWidth: 80}).offsetWidth;
+  wrap.scrollLeft = Math.max(0, upcoming.offsetLeft - stickyWidth);
+}
+
 /* ── MATRIX ── */
 function getStatus(mid, eid) { return current.cells?.[mid]?.[eid] ?? 0; }
 function setStatus(mid, eid, s) {
@@ -818,19 +868,39 @@ function toggleStatus(mid, eid) {
 
 function renderMatrix() {
   const cont = document.getElementById('matrix-container');
-  const { events, members } = current;
+  const { members } = current;
+  const sorted = getSortedEvents();
 
-  if (!members.length && !events.length) {
+  if (!members.length && !sorted.length) {
     cont.innerHTML = `<div class="mx-empty"><strong>データがまだありません</strong><p>下のフォームから参加者と日程を追加してください</p></div>`;
     return;
   }
 
+  const today = new Date(); today.setHours(0,0,0,0);
+  // Classify each event
+  const evMeta = sorted.map(ev => {
+    const d = parseEventDate(ev.title);
+    return { ev, d, isPast: d ? d < today : false };
+  });
+  // Find first upcoming index
+  const firstUpcomingIdx = evMeta.findIndex(m => !m.isPast);
+
+  // Preserve scroll unless schedule changed
+  const scheduleChanged = _lastRenderedScheduleId !== current.id;
+  _lastRenderedScheduleId = current.id;
+  const wrap = document.querySelector('.table-scroll');
+  const savedScroll = (!scheduleChanged && wrap) ? wrap.scrollLeft : null;
+
   let h = '<table class="matrix"><thead><tr>';
   h += `<th class="th-name">参加者</th>`;
-  events.forEach(ev => {
-    h += `<th class="th-event">
+  evMeta.forEach(({ ev, isPast }, idx) => {
+    const cls = isPast ? ' past' : (idx === firstUpcomingIdx ? ' next-upcoming' : '');
+    const badge = idx === firstUpcomingIdx ? `<span class="upcoming-badge">NEXT</span><br>` : '';
+    h += `<th class="th-event${cls}">
       <div class="event-header">
-        <span class="event-name" ondblclick="editEventName('${ev.id}',this)" title="ダブルタップで編集">${esc(ev.title)}</span>
+        <div style="flex:1;min-width:0">
+          ${badge}<span class="event-name" ondblclick="editEventName('${ev.id}',this)" title="ダブルタップで編集">${esc(ev.title)}</span>
+        </div>
         <button class="ev-del" onclick="deleteEvent('${ev.id}')" title="削除">✕</button>
       </div></th>`;
   });
@@ -848,20 +918,22 @@ function renderMatrix() {
         <button class="rbtn del" onclick="deleteMember('${m.id}')" title="削除">✕</button>
       </div>
     </div></td>`;
-    events.forEach(ev => {
+    evMeta.forEach(({ ev, isPast }) => {
       const s = getStatus(m.id, ev.id);
-      h += `<td class="td-cell s${s}" onclick="toggleStatus('${m.id}','${ev.id}')">
+      const pastCls = isPast ? ' past' : '';
+      h += `<td class="td-cell s${s}${pastCls}" onclick="toggleStatus('${m.id}','${ev.id}')">
         <div class="ci"><span class="si">${STATUS[s]}</span></div></td>`;
     });
     h += '<td class="td-spacer"></td></tr>';
   });
 
-  if (members.length > 0 && events.length > 0) {
+  if (members.length > 0 && sorted.length > 0) {
     h += `<tr class="sum-row"><td class="td-name sum-label">集計</td>`;
-    events.forEach(ev => {
+    evMeta.forEach(({ ev, isPast }) => {
       const c = [0,0,0,0];
       members.forEach(m => c[getStatus(m.id,ev.id)]++);
-      h += `<td class="td-cell s0"><div class="sum-counts">
+      const pastCls = isPast ? ' past' : '';
+      h += `<td class="td-cell s0${pastCls}"><div class="sum-counts">
         <span class="chip c">○ ${c[1]}</span>
         <span class="chip t">△ ${c[2]}</span>
         <span class="chip x">× ${c[3]}</span>
@@ -872,6 +944,17 @@ function renderMatrix() {
 
   h += '</tbody></table>';
   cont.innerHTML = h;
+
+  // Restore or auto-scroll
+  requestAnimationFrame(() => {
+    const w = document.querySelector('.table-scroll');
+    if (!w) return;
+    if (savedScroll !== null) {
+      w.scrollLeft = savedScroll;
+    } else {
+      autoScrollToUpcoming();
+    }
+  });
 }
 
 /* ── MUTATIONS ── */
